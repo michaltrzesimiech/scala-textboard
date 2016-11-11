@@ -4,7 +4,7 @@
 		module="scala-textboard_2.11"
 		revision="0.0.1"
 		status="integration"
-		publication="20161108171645"
+		publication="20161111192108"
 	>
 		<description>
 		scala-textboard
@@ -39,10 +39,11 @@
 		<dependency org="com.typesafe.akka" name="akka-stream_2.11" rev="2.4.12" conf="compile->default(compile)"/>
 		<dependency org="com.typesafe.akka" name="akka-http-core_2.11" rev="2.4.11" conf="compile->default(compile)"/>
 		<dependency org="com.typesafe.akka" name="akka-http-experimental_2.11" rev="2.4.11" conf="compile->default(compile)"/>
-		<dependency org="org.postgresql" name="postgresql" rev="9.4-1206-jdbc41" conf="compile->default(compile)"/>
 		<dependency org="com.typesafe.slick" name="slick_2.11" rev="3.1.1" conf="compile->default(compile)"/>
 		<dependency org="com.typesafe.slick" name="slick-hikaricp_2.11" rev="3.1.1" conf="compile->default(compile)"/>
+		<dependency org="com.github.nscala-time" name="nscala-time_2.11" rev="2.14.0" conf="compile->default(compile)"/>
 		<dependency org="net.codingwell" name="scala-guice_2.11" rev="4.1.0" conf="compile->default(compile)"/>
+		<dependency org="org.postgresql" name="postgresql" rev="9.4-1206-jdbc41" conf="compile->default(compile)"/>
 		<dependency org="org.scalatest" name="scalatest_2.11" rev="3.0.0" conf="test->default(compile)"/>
 		<dependency org="com.typesafe.akka" name="akka-http-testkit_2.11" rev="2.4.11" conf="test->default(compile)"/>
 	</dependencies>
