@@ -1,4 +1,6 @@
-/** Building on a simpler model. */
+/**
+ * Building on a simpler model
+ */
 
 import akka.actor.ActorSystem
 import akka.actor.{ Actor, ActorRef, Props }
@@ -16,16 +18,19 @@ import akka.stream.scaladsl.{ Flow, Sink, Source }
 import com.typesafe.config.{ Config, ConfigFactory }
 import scala.concurrent.{ ExecutionContextExecutor, Future }
 import scala.io._
-import scala.io.StdIn
 import spray.json._
 import spray.json.DefaultJsonProtocol
 
-/** TODO: rationalize this */
+import org.scalatest.{ Matchers, WordSpec }
+import akka.http.scaladsl.testkit.ScalatestRouteTest
+
 trait InviterJsonProtocol extends DefaultJsonProtocol with SprayJsonSupport {
   implicit object InvitationJsonFromat extends RootJsonFormat[Invitation] {
+    // when performing a GET
     def write(i: Invitation) =
       JsArray(JsString(i.invitee), JsString(i.email))
 
+    // when performing a POST
     def read(value: JsValue) = value match {
       case JsArray(Vector(JsString(name), JsString(email))) =>
         new Invitation(name, email)
@@ -45,19 +50,22 @@ object InviterRoutes extends InviterJsonProtocol with SprayJsonSupport {
   implicit val timeout = Timeout(5 seconds)
 
   /** Orchestrates DSL routes with an instance of "inviter" actor */
-  def routes(inviter: ActorRef): Route =
+  def routes(inviter: ActorRef): Route = {
     path("invitation") {
-      post {
-        entity(as[Invitation]) { invitation =>
-          val futPost = (inviter ? InviterDb.CreateInvitation(invitation))
-          complete(futPost)
+      get {
+        entity(as[List[Invitation]]) { invitation =>
+          val futGet: Future[List[Invitation]] = (inviter ? InviterDb.FindAllInvitations).mapTo[List[Invitation]]
+          complete(futGet)
         }
       }
     } ~
-      get {
-        //        entity(as[Invitation]) { invitation =>
-        complete("OK")
+      post {
+        entity(as[Invitation]) { invitation =>
+          val futPost = (inviter ? InviterDb.CreateInvitation(invitation)).mapTo[Invitation]
+          complete(futPost)
+        }
       }
+  }
 
   /** Invokes ActorSystem, materializes Actor, binds to server, terminates server.  */
   def run: Unit = {
@@ -67,13 +75,11 @@ object InviterRoutes extends InviterJsonProtocol with SprayJsonSupport {
     implicit val timeout = Timeout(5 seconds)
     val inviter = system.actorOf(Props[InviterDb], "inviter")
 
-    /**
-     * val config = ConfigFactory.load()
-     * val logger = Logging(system, getClass)
-     */
+    //    val config = ConfigFactory.load()
+    val logger = Logging(system, getClass)
 
     val serverSource: Source[Http.IncomingConnection, Future[Http.ServerBinding]] =
-      Http().bind(interface = "localhost", port = 8080)
+      Http().bind(interface = "localhost", port = 8081)
     val sink = Sink.foreach[Http.IncomingConnection](_.handleWith(routes(inviter)))
     serverSource.to(sink).run
 
