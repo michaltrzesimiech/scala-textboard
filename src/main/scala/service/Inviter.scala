@@ -15,27 +15,33 @@ import scala.io.StdIn
 import spray.json._
 import spray.json.DefaultJsonProtocol
 
+/** Domain model */
 case class Invitation(invitee: String, email: String)
 object Invitation
 
+/** Pulls in implicit conversions to build JSON instances */
 trait InviterJsonProtocol extends DefaultJsonProtocol with SprayJsonSupport {
   implicit val invitationFormat = jsonFormat2(Invitation.apply)
 }
 
 object InviterRoutes extends InviterJsonProtocol with SprayJsonSupport {
+  import scala.collection.mutable.Seq
 
-  var example = Invitation("Michal Trzesimiech", "michal.trzesimiech@gmail.com")
+  val invitation0 = Invitation("John Smith", "john@smith.mx")
+  var invitations: collection.mutable.Seq[Invitation] = Seq(invitation0)
 
   /** DSL routes */
   def routes: Route = {
     pathPrefix("invitation") {
       get {
-        complete(example)
+        complete(invitations.head)
       }
     } ~
       post {
-        complete(example)
-      }
+        entity(as[Invitation]) { invitation =>
+          complete(invitation)
+        }
+      } ~ complete(invitation0)
   }
 
   /** Invokes ActorSystem, materializes Actor, binds routes to server, gracefully shuts down on user action.  */
