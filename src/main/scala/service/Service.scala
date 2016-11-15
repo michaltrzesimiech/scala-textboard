@@ -13,29 +13,27 @@ import akka.http.scaladsl.unmarshalling.{ Unmarshal, FromRequestUnmarshaller }
 import akka.stream.{ ActorMaterializer, Materializer }
 import akka.stream.scaladsl.{ Flow, Sink, Source }
 import com.typesafe.config.{ Config, ConfigFactory }
-import scala.collection.mutable.{ Seq, Map }
+import scala.collection.mutable.{ Seq, Map, IndexedSeq, ArraySeq }
 import scala.concurrent.{ ExecutionContextExecutor, Future }
 import scala.io._
 import scala.io.StdIn
+import scala.language.{ implicitConversions, postfixOps }
 import spray.json._
 import spray.json.DefaultJsonProtocol
 import java.util.UUID
 
 /** Domain model */
 case class Thread(
-  threadId: AnyVal,
+  threadId: Int,
   subject: String,
-  posts: scala.collection.mutable.Seq[Map[Int, Post]])
+  posts: IndexedSeq[Post])
 
 case class Post(
   // secretId: Int,
-  postId: Any,
+  //  postId: Any,
   pseudonym: String,
   email: String,
   content: String)
-
-case class IndexedPost(
-  postId: collection.mutable.Map[Any, Post])
 
 /** Pulls in all implicit conversions to build JSON format instances, both RootJsonReader and RootJsonWriter. */
 trait TextboardJsonProtocol extends DefaultJsonProtocol with SprayJsonSupport {
@@ -73,40 +71,44 @@ object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
   val threader = system.actorOf(Props[TextboardDb], name = "threader")
 
   /** TODO: Set DSL routes least strict to most strict */
-  val route: Route = {
-    get {
-      path("thread" / IntNumber) { id =>
-        val maybeThread: Future[Option[Thread]] = Universe.openThread(id)
-        onSuccess(maybeThread) {
-          case Some(item) => complete(item)
-          case None       => complete(StatusCodes.NotFound)
-        }
-      } ~ path("thread") {
-        complete(Universe.listAllThreads)
-      }
-    } ~
-      post {
-        path("thread" / "post") {
-          entity(as[Thread]) { thread =>
-            Universe.createThread(thread)
-            complete("thread created")
-          }
-        }
-      }
+  val route: Route = { complete("OK") }
 
-    // POST /thread
-    // POST /thread/:id/posts
-    // PUT /posts/:secret_id
-    // DELETE /posts/:secret_id
-    // GET /threads?limit=x&offset=x
-    // GET /thread/:thread_id/posts
-  }
+  //  val route: Route = {
+  //    get {
+  //      path("thread" / IntNumber) { id =>
+  //        val maybeThread: Future[Option[Thread]] = Universe.openThread(id)
+  //        onSuccess(maybeThread) {
+  //          case Some(item) => complete(item)
+  //          case None       => complete(StatusCodes.NotFound)
+  //        }
+  //      } ~ path("thread") {
+  //        complete(Universe.listAllThreads)
+  //      }
+  //    } ~
+  //      post {
+  //        path("thread" / "post") {
+  //          entity(as[List[Thread]]) { s =>
+  //            (boardMaster ? Universe.createThread(pseudonym, email, subject, content))
+  //            complete("thread created")
+  //          }
+  //        }
+  //      }
+  //    }
+
+  // POST /thread
+  // POST /thread/:id/posts
+  // PUT /posts/:secret_id
+  // DELETE /posts/:secret_id
+  // GET /threads?limit=x&offset=x
+  // GET /thread/:thread_id/posts
 
   def run = {
     implicit val system = ActorSystem()
     implicit val materializer = ActorMaterializer()
     implicit val executionContext = system.dispatcher
     implicit val timeout = Timeout(5 seconds)
+
+    val boardMaster = system.actorOf(Props[TextboardDb])
 
     val logger = Logging(system, getClass)
     val config = ConfigFactory.load()
@@ -146,24 +148,21 @@ class TextboardDb extends Actor {
 }
 
 object Universe {
-  /** TODO: add secret key */
+  case class IndexedPosts(index: Int, post: Post)
+
   val randomUUID = UUID.randomUUID()
+  /** TODO: add secret key */
 
   var threads: scala.collection.mutable.Seq[Thread] = Seq.empty
   val nextThreadId = { if (threads.nonEmpty) threads.last.threadId + 1 else 1 /** TODO: pattern matching on stabilised threads */ }
   implicit def thisThread(id: Int): Thread = { threads filter (_.threadId == id) head }
 
-  implicit var posts: scala.collection.mutable.Seq[Map[Int, Post]] = Seq()
-  implicit val nextPostId = { if (posts.nonEmpty) posts.last map (_._1 + 1) else 1 /** TODO: pattern matching on stabilised posts */ }
-
   def createThread(pseudonym: String, email: String, subject: String, content: String) = {
     /** adds new thread with post hierarchy to all threads */
-    threads = threads :+ new Thread(nextThreadId, subject, posts)
+    threads = threads :+ new Thread(nextThreadId, subject, IndexedSeq.empty)
 
     /** begins post hierarchy, each post gets unique ID */
-    val postId = nextPostId
-    val postIndexed = new Post(postId, pseudonym, email, content)
-    threads.last.posts :+ new IndexedPost(Map(postId -> postIndexed))
+    threads.last.posts :+ new Post(pseudonym, email, content)
   }
 
   def openThread(id: Int) = { thisThread(id) }
@@ -187,26 +186,23 @@ object Universe {
   }
 
   def addPost(threadId: Int, email: String, pseudonym: String, content: String) = {
-    val postId = nextPostId
-    val postIndexed = new Post(postId, pseudonym, email, content)
-    threads filter (_.threadId == threadId) map (_.posts :+ new IndexedPost(Map(postId -> postIndexed)))
+    //    implicit val nextPostId = { if (threadId.nonEmpty) posts.last map (_._1 + 1) else 1 /** TODO: pattern matching on stabilised posts */ }
+
   }
 
   /** TODO: fetch post by id in a concrete thread, use lenses */
-  //  implicit def thisPost(threadId: Int, postId: Int): Post = {
-  //    data.toMap.get('b').get
-  //    data.find(_._1 == 'b').get._2
-  //    myMap.mapValues(_.map(_._2))
-
-  //    val postsInThread: Seq[Map[Int, Post]] = thisThread(threadId).posts filter (_._1 == postId) head
-  //    val postsInThreadWithId: Seq[Map[Int, Post]] = for (post <- posts) yield post filter (_._1 == postId)
-  //  }
+  implicit def thisPost(threadId: Int, postId: Int): Post = {
+    val postsOfThisPost: Seq[IndexedSeq[Post]] = threads filter (_.threadId == threadId) map (_.posts)
+    val indexedSet = postsOfThisPost
+    /** ^^^^^^ */
+  }
 
   def editPost(threadId: Int, postId: Int, content: String) = {
     /** TODO: Use secret key as a condition */
-    //    val postsInThread: Seq[Map[Int, Post]] = thisThread(threadId).posts
-    //    val postsInThreadWithId: Seq[Map[Int, Post]] = for (post <- posts) yield post filter (_._1 == postId) map (_._2 => content)
-    //    for (post <- postsInThreadWithId) yield post map (_._2 => content)
+    val postsOfThisPost: Seq[IndexedSeq[Post]] = threads filter (_.threadId == threadId) map (_.posts)
+    val indexedSet = postsOfThisPost
+    indexedSet.update(postId - 1, _.posts)
+    /** ^^^^^^ */
   }
 
   def deletePost(threadId: Int) = {
@@ -220,6 +216,11 @@ object Universe {
 * 1. Enable creating Threads with IndexedPosts, listing all Threads
 * 2. Enable opening Threads and deleting Threads by Id
 * 3. Enable adding Posts to Threads
-* 4.    Enable editing, deleting Posts
+* 4. Enable editing, deleting Posts
 * 5. Integrate with Postgres
+* 
+* CHECK:
+* Lenses
+* Inverse factorial
+*/
 */
