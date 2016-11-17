@@ -19,12 +19,12 @@ class TestRoutes extends WordSpec with Matchers with ScalatestRouteTest {
     }
   }
 
-  "The service" should {
-    "post new thread with success" in {
-      Post("/threads") ~> TextboardRoutes.route ~> check {
-        status.isSuccess() shouldEqual true
-      }
-    }
-  }
+//  "The service" should {
+//    "post new thread with success" in {
+//      Post("/threads") ~> TextboardRoutes.route ~> check {
+//        status.isSuccess() shouldEqual true
+//      }
+//    }
+//  }
 
 }

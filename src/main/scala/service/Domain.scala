@@ -15,7 +15,7 @@ import akka.http.scaladsl.unmarshalling.{ Unmarshal, FromRequestUnmarshaller }
 import akka.stream.{ ActorMaterializer, Materializer }
 import akka.stream.scaladsl.{ Flow, Sink, Source }
 import com.typesafe.config.{ Config, ConfigFactory }
-import scala.collection.mutable.{ Seq, Map, IndexedSeq, ArraySeq, HashMap, MutableList }
+import scala.collection.mutable.{ Seq, HashMap }
 import scala.concurrent.{ ExecutionContextExecutor, Future }
 import scala.io._
 import scala.io.StdIn
