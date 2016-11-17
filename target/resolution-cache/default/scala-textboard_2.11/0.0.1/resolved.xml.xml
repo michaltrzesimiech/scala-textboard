@@ -4,7 +4,7 @@
 		module="scala-textboard_2.11"
 		revision="0.0.1"
 		status="integration"
-		publication="20161113193303"
+		publication="20161117214937"
 	>
 		<description>
 		scala-textboard
@@ -36,17 +36,17 @@
 		<dependency org="org.scala-lang" name="scala-library" rev="2.11.8" conf="scala-tool->default,optional(default);compile->default(compile)"/>
 		<dependency org="com.artima.supersafe" name="supersafe_2.11.8" rev="1.1.0" conf="plugin->default(compile)"/>
 		<dependency org="com.typesafe.akka" name="akka-actor_2.11" rev="2.4.12" conf="compile->default(compile)"/>
-		<dependency org="com.typesafe.akka" name="akka-http-spray-json-experimental_2.11" rev="2.4.11" conf="compile->default(compile)"/>
 		<dependency org="com.typesafe.akka" name="akka-stream_2.11" rev="2.4.12" conf="compile->default(compile)"/>
 		<dependency org="com.typesafe.akka" name="akka-http-core_2.11" rev="2.4.11" conf="compile->default(compile)"/>
 		<dependency org="com.typesafe.akka" name="akka-http-experimental_2.11" rev="2.4.11" conf="compile->default(compile)"/>
-		<dependency org="com.typesafe.slick" name="slick_2.11" rev="3.1.1" conf="compile->default(compile)"/>
-		<dependency org="com.typesafe.slick" name="slick-hikaricp_2.11" rev="3.1.1" conf="compile->default(compile)"/>
-		<dependency org="com.github.nscala-time" name="nscala-time_2.11" rev="2.14.0" conf="compile->default(compile)"/>
-		<dependency org="net.codingwell" name="scala-guice_2.11" rev="4.1.0" conf="compile->default(compile)"/>
+		<dependency org="com.typesafe.akka" name="akka-http-testkit_2.11" rev="2.4.11" conf="test->default(compile)"/>
+		<dependency org="com.typesafe.akka" name="akka-http-spray-json-experimental_2.11" rev="2.4.11" conf="compile->default(compile)"/>
 		<dependency org="org.postgresql" name="postgresql" rev="9.4-1206-jdbc41" conf="compile->default(compile)"/>
 		<dependency org="org.scalactic" name="scalactic_2.11" rev="3.0.0" conf="compile->default(compile)"/>
+		<dependency org="net.codingwell" name="scala-guice_2.11" rev="4.1.0" conf="compile->default(compile)"/>
 		<dependency org="org.scalatest" name="scalatest_2.11" rev="3.0.0" conf="test->default(compile)"/>
-		<dependency org="com.typesafe.akka" name="akka-http-testkit_2.11" rev="2.4.11" conf="test->default(compile)"/>
+		<dependency org="com.chuusai" name="shapeless_2.11" rev="2.3.2" conf="compile->default(compile)"/>
+		<dependency org="com.typesafe.slick" name="slick_2.11" rev="3.1.1" conf="compile->default(compile)"/>
+		<dependency org="com.typesafe.slick" name="slick-hikaricp_2.11" rev="3.1.1" conf="compile->default(compile)"/>
 	</dependencies>
 </ivy-module>

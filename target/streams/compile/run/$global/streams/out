@@ -1,1 +1,13 @@
 [0m[[0mdebug[0m] [0mjavaOptions: List()[0m
+[0m[[0minfo[0m] [0mRunning service.WebServer [0m
+[0m[[0minfo[0m] [0m[DEBUG] [11/17/2016 21:56:33.849] [main] [EventStream(akka://inviter)] logger log1-Logging$DefaultLogger started[0m
+[0m[[0minfo[0m] [0m[DEBUG] [11/17/2016 21:56:33.849] [main] [EventStream(akka://inviter)] Default Loggers started[0m
+[0m[[0minfo[0m] [0m[DEBUG] [11/17/2016 21:56:33.943] [main] [EventStream(akka://default)] logger log1-Logging$DefaultLogger started[0m
+[0m[[0minfo[0m] [0m[DEBUG] [11/17/2016 21:56:33.943] [main] [EventStream(akka://default)] Default Loggers started[0m
+[0m[[0minfo[0m] [0m[DEBUG] [11/17/2016 21:56:33.995] [main] [AkkaSSLConfig(akka://default)] Initializing AkkaSSLConfig extension...[0m
+[0m[[0minfo[0m] [0m[DEBUG] [11/17/2016 21:56:33.995] [main] [AkkaSSLConfig(akka://default)] buildHostnameVerifier: created hostname verifier: com.typesafe.sslconfig.ssl.DefaultHostnameVerifier@1247367[0m
+[0m[[0minfo[0m] [0mServer running. Press ENTER to stop.[0m
+[0m[[0minfo[0m] [0m[DEBUG] [11/17/2016 21:56:35.063] [default-akka.actor.default-dispatcher-3] [akka://default/system/IO-TCP/selectors/$a/0] Successfully bound to /127.0.0.1:8099[0m
+[0m[[0minfo[0m] [0m[DEBUG] [11/17/2016 21:58:06.980] [default-akka.actor.default-dispatcher-3] [akka://default/system/IO-TCP/selectors/$a/0] New connection accepted[0m
+[0m[[0minfo[0m] [0m[DEBUG] [11/17/2016 21:58:31.981] [default-akka.actor.default-dispatcher-8] [akka://default/system/IO-TCP/selectors/$a/0] New connection accepted[0m
+[0m[[0minfo[0m] [0m[DEBUG] [11/17/2016 21:58:47.845] [default-akka.actor.default-dispatcher-8] [akka://default/system/IO-TCP/selectors/$a/0] New connection accepted[0m
