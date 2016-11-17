@@ -15,25 +15,19 @@ import akka.http.scaladsl.unmarshalling.{ Unmarshal, FromRequestUnmarshaller }
 import akka.stream.{ ActorMaterializer, Materializer }
 import akka.stream.scaladsl.{ Flow, Sink, Source }
 import com.typesafe.config.{ Config, ConfigFactory }
-import scala.collection.mutable.{ Seq, Map, IndexedSeq, ArraySeq, HashMap, MutableList }
+import scala.collection.mutable.{ HashMap }
 import scala.concurrent.{ ExecutionContextExecutor, Future }
 import scala.io._
 import scala.io.StdIn
 import scala.language.{ implicitConversions, postfixOps }
 import spray.json._
 
-/** Core service. Invokes ActorSystem, materializes Actor, orchestrates DSL routes, binds to server, terminates server. */
 object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
   import akka.pattern.ask
   import akka.util.Timeout
   import scala.concurrent.duration._
   import scala.language.postfixOps
 
-  implicit val system = ActorSystem("inviter")
-  implicit val timeout = Timeout(5 seconds)
-  val threader = system.actorOf(Props[TextboardDb], name = "threader")
-
-  /** TODO: Set DSL routes least strict to most strict */
   val route: Route = {
     path("threads") {
       get {
@@ -42,6 +36,7 @@ object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
       } ~
         post {
           entity(as[Thread]) { thread =>
+            /** (boardMaster ? Universe.createThread(thread, Post("a", "b", "c"))) */
             Universe.createThread(thread, Post("a", "b", "c"))
             complete(s"Created ${thread}")
           }
@@ -59,15 +54,8 @@ object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
   }
 
   /**
-   * Routes, least strict to most strict:
+   * TODO: Set routes, least strict to most strict:
    *
-   * Next:
-   * POST /thread/:id/posts
-   * POST /thread
-   * DELETE /posts
-   * GET /thread/
-   *
-   * Final?:
    * POST /thread
    * POST /thread/:id/posts
    * PUT /posts/:secret_id
@@ -77,21 +65,27 @@ object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
    */
 
   def run = {
+    import akka.pattern.ask
+
+    /** Invoke ActorSystem, materializes Actor and execution context */
     implicit val system = ActorSystem()
     implicit val materializer = ActorMaterializer()
     implicit val executionContext = system.dispatcher
-    implicit val timeout = Timeout(5 seconds)
 
-    val boardMaster = system.actorOf(Props[TextboardDb])
+    /** Summon DBActor */
+    //    implicit val timeout = Timeout(5 seconds)
+    //    val boardMaster = system.actorOf(Props[TextboardDb])
 
     val logger = Logging(system, getClass)
     val config = ConfigFactory.load()
-    val binding = Http().bindAndHandle(route, config.getString("http.interface"), config.getInt("http.port"))
 
+    /** Bind routes to server, gracefully terminate server when done */
+    val binding = Http().bindAndHandle(route, config.getString("http.interface"), config.getInt("http.port"))
     println(s"Server running. Press ENTER to stop."); StdIn.readLine()
     binding
       .flatMap(_.unbind())
       .onComplete(_ => system.terminate())
+
   }
 }
 
