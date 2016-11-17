@@ -34,19 +34,23 @@ object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
   val threader = system.actorOf(Props[TextboardDb], name = "threader")
 
   /** TODO: Set DSL routes least strict to most strict */
+  def mockCreateThread(thread: Thread) = {
+    Universe.threads = Universe.threads :+ thread
+    Universe.threads last
+  }
 
   val route: Route = {
     path("threads") {
       get {
         complete(Universe.listAllThreads)
       }
-    } /*~
+    } ~
       post {
         entity(as[Thread]) { thread =>
           complete(
-          Universe.threads = Universe.threads :+ thread)
+            mockCreateThread(thread))
         }
-      }*/
+      }
   }
 
   // val route: Route = {

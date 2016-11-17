@@ -59,8 +59,6 @@ class TextboardDb extends Actor {
   }
 }
 
-object WebServer extends App { TextboardRoutes.run }
-
 object Universe {
   var threads: MutableList[Thread] = MutableList.empty
 
