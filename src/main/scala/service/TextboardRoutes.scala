@@ -34,53 +34,47 @@ object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
   val threader = system.actorOf(Props[TextboardDb], name = "threader")
 
   /** TODO: Set DSL routes least strict to most strict */
-  def mockCreateThread(thread: Thread) = {
-    Universe.threads = Universe.threads :+ thread
-    Universe.threads last
-  }
-
   val route: Route = {
     path("threads") {
       get {
-        complete(Universe.listAllThreads)
-      }
+        val allThreads = Universe.listAllThreads
+        complete(s"Here's a list of all threads: ${allThreads}")
+      } ~
+        post {
+          entity(as[Thread]) { thread =>
+            Universe.createThread(thread, Post("a", "b", "c"))
+            complete(s"Created ${thread}")
+          }
+        }
     } ~
-      post {
-        entity(as[Thread]) { thread =>
-          complete(
-            mockCreateThread(thread))
+      path("threads" / "reply") {
+        post {
+          entity(as[Post]) { post =>
+            val threadId = 1
+            Universe.addPost(threadId, post)
+            complete("Added ${post} to thread ${threadId}")
+          }
         }
       }
   }
 
-  // val route: Route = {
-  // get {
-  // path("thread" / IntNumber) { id =>
-  // val maybeThread: Future[Option[Thread]] = Universe.openThread(id)
-  // onSuccess(maybeThread) {
-  // case Some(item) => complete(item)
-  // case None => complete(StatusCodes.NotFound)
-  // }
-  // } ~ path("thread") {
-  // complete(Universe.listAllThreads)
-  // }
-  // } ~
-  // post {
-  // path("thread" / "post") {
-  // entity(as[List[Thread]]) { s =>
-  // (boardMaster ? Universe.createThread(pseudonym, email, subject, content))
-  // complete("thread created")
-  // }
-  // }
-  // }
-  // }
-
-  // POST /thread
-  // POST /thread/:id/posts
-  // PUT /posts/:secret_id
-  // DELETE /posts/:secret_id
-  // GET /threads?limit=x&offset=x
-  // GET /thread/:thread_id/posts
+  /**
+   * Routes, least strict to most strict:
+   *
+   * Next:
+   * POST /thread/:id/posts
+   * POST /thread
+   * DELETE /posts
+   * GET /thread/
+   *
+   * Final?:
+   * POST /thread
+   * POST /thread/:id/posts
+   * PUT /posts/:secret_id
+   * DELETE /posts/:secret_id
+   * GET /threads?limit=x&offset=x
+   * GET /thread/:thread_id/posts
+   */
 
   def run = {
     implicit val system = ActorSystem()
@@ -100,3 +94,14 @@ object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
       .onComplete(_ => system.terminate())
   }
 }
+
+/**
+* TODO: Break down
+* 1. Enable creating Threads, listing all Threads
+* 2. Enable opening Threads and deleting Threads by Id
+* 3. Enable adding Posts to Threads
+* 4. Enable editing, deleting Posts
+* 5. Integrate with Postgres
+* 6. Add secret key as condition to edit or delete Post, delete Thread
+* 7. Pattern matching on stabilised threads for nextThreadId
+*/

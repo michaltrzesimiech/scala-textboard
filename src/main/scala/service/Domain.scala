@@ -20,13 +20,11 @@ import scala.concurrent.{ ExecutionContextExecutor, Future }
 import scala.io._
 import scala.io.StdIn
 import scala.language.{ implicitConversions, postfixOps }
-//import shapeless._
 import spray.json._
 import spray.json.DefaultJsonProtocol
 
 /** Domain model */
 case class Thread(
-  threadId: Int,
   subject: String,
   posts: HashMap[Int, Post])
 
@@ -35,83 +33,70 @@ case class Post(
   email: String,
   content: String)
 
+/** DB actor*/
 object TextboardDb {
-  case class CreateThread(pseudonym: String, email: String, subject: String, content: String)
+  case class CreateThread(thread: Thread, post: Post)
   case class OpenThread(id: Int)
   case class DeleteThread(id: Int)
   case object ListAllThreads
-  case class AddPost(threadId: Int, email: String, pseudonym: String, content: String)
-  case class EditPost(threadId: Int, postId: Int, content: String)
-  case class DeletePost(threadId: Int)
+  case class AddPost(threadId: Int, post: Post)
+  case class EditPost(threadId: Int, postId: Int, newPost: Post)
+  case class DeletePost(threadId: Int, postId: Int)
 }
 
 class TextboardDb extends Actor {
   import TextboardDb._
 
   def receive = {
-    case CreateThread(pseudonym, email, subject, content) => Universe.createThread(pseudonym, email, subject, content)
-    case OpenThread(id)                                   => Universe.openThread(id)
-    case DeleteThread(id)                                 => Universe.deleteThread(id)
-    case ListAllThreads                                   => Universe.threads.toList
-    case AddPost(threadId, email, pseudonym, content)     => Universe.addPost(threadId, email, pseudonym, content)
-    case EditPost(threadId, postId, content)              => Universe.editPost(threadId, postId, content)
-    // case DeletePost(threadId, postId) => Universe.deletePost(threadId: Int, postId: Int)
+    case CreateThread(thread, post)          => Universe.createThread(thread, post)
+    case OpenThread(id)                      => Universe.openThread(id)
+    case DeleteThread(id)                    => Universe.deleteThread(id)
+    case ListAllThreads                      => Universe.threads.toList
+    case AddPost(threadId, post)             => Universe.addPost(threadId, post)
+    case EditPost(threadId, postId, newPost) => Universe.editPost(threadId, postId, newPost)
+    case DeletePost(threadId, postId)        => Universe.deletePost(threadId: Int, postId: Int)
   }
 }
 
+/** DB operations */
 object Universe {
-  var threads: MutableList[Thread] = MutableList.empty
+  var threads: HashMap[Int, Thread] = HashMap.empty
 
-  val nextThreadId = { if (threads.nonEmpty) threads.last.threadId + 1 else 1 }
   implicit def thisThread(id: Int): Option[Thread] = { threads.get(id) }
+  implicit def thisPost(threadId: Int, postId: Int): Option[HashMap[Int, Post]] = {
+    thisThread(threadId) map (_.posts) filter (_.keys == postId)
+  }
 
-  def createThread(pseudonym: String, email: String, subject: String, content: String) = {
-    /** adds new thread with post hierarchy to all threads */
-    threads = threads :+ new Thread(nextThreadId, subject, HashMap.empty)
+  implicit val nextThreadId: Int = { if (threads.nonEmpty) threads.last._1 + 1 else 1 }
+  implicit def nextPostInt(threadId: Int): Int = {
+    val lastId = threads.last._2.posts.last._1.toInt
+    if (lastId.isDefined) lastId + 1 else 1
+  }
 
-    /** begins post hierarchy, each post gets unique ID */
-    threads.last.posts += (1 -> new Post(pseudonym, email, content))
+  def createThread(thread: Thread, post: Post) = {
+    /** adds new thread  */
+    threads = threads += (nextThreadId -> thread)
+
+    /** begins post hierarchy in thread */
+    threads.last._2.posts += (1 -> post)
+    //    threads.last.posts += (1 -> new Post(pseudonym, email, content))
   }
 
   def openThread(id: Int): Option[Thread] = { thisThread(id) }
 
-  def deleteThread(id: Int) = { thisThread(id) map (_ => 0) }
+  def deleteThread(id: Int) = { threads = threads -= id }
 
-  def listAllThreads = { threads.toList }
+  def listAllThreads = { threads }
 
-  /** TODO: simplify, potentially lenses */
-  implicit def thisPost(threadId: Int, postId: Int): Option[HashMap[Int, Post]] = {
-    val postsHere: Option[HashMap[Int, Post]] = threads.get(threadId) map (_.posts)
-    val indexes: Option[Iterable[Int]] = postsHere map (_.keys)
-    val thisId: Option[Int] = for (id <- indexes; if id == postId) yield id head
-    val yourPost: Option[HashMap[Int, Post]] = postsHere filter (_.keys == thisId)
-    yourPost
+  def addPost(threadId: Int, post: Post) = {
+    threads.get(threadId) map (_.posts += (nextPostInt(threadId) -> post))
   }
 
-  def addPost(threadId: Int, email: String, pseudonym: String, content: String) = {
-    /** TODO: Get lenses here */
-    val postIds: Option[Iterable[Int]] = threads.get(threadId) map (_.posts.keys)
-    val lastId: Option[Int] = for (id <- postIds) yield id.last.toInt
-    val nextPostInt = if (lastId.isDefined) lastId.last.toInt + 1 else 1
-
-    threads.get(threadId) map (_.posts += (nextPostInt -> new Post(pseudonym, email, content)))
+  def editPost(threadId: Int, postId: Int, newPost: Post) = {
+    threads.get(threadId) map (_.posts) map (_.update(postId, newPost))
   }
 
-  /** TODO: Use secret key as a condition */
-  /** TODO: Get lenses here */
-  def editPost(threadId: Int, postId: Int, content: String) = { thisPost(threadId, postId) map (x => x.-=(postId)) }
-
-  /** TODO: Use secret key as a condition */
-  def deletePost(threadId: Int, postId: Int) = { thisThread(threadId) map (_.posts.remove(postId)) }
+  def deletePost(threadId: Int, postId: Int) = {
+    threads.get(threadId) map (_.posts.remove(postId))
+  }
 }
-
-/**
-* TODO: Break down
-* 1. Enable creating Threads, listing all Threads
-* 2. Enable opening Threads and deleting Threads by Id
-* 3. Enable adding Posts to Threads
-* 4. Enable editing, deleting Posts
-* 5. Integrate with Postgres
-* 6. Add secret key to Post
-* 7. Pattern matching on stabilised threads for nextThreadId
-*/
