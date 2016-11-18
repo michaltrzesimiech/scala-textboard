@@ -56,7 +56,7 @@ object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
   /**
    * TODO: Set routes, least strict to most strict:
    *
-   * POST /thread
+   * POST /thread { "subject": "test", "posts": { "threadId": null, "post": { "pseudonym": "Michal", "email": "michal.trzesimiech@gmail.com", "content": "such content" } } }
    * POST /thread/:id/posts
    * PUT /posts/:secret_id
    * DELETE /posts/:secret_id
@@ -73,8 +73,8 @@ object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
     implicit val executionContext = system.dispatcher
 
     /** Summon DBActor */
-    //    implicit val timeout = Timeout(5 seconds)
-    //    val boardMaster = system.actorOf(Props[TextboardDb])
+    // implicit val timeout = Timeout(5 seconds)
+    // val boardMaster = system.actorOf(Props[TextboardDb])
 
     val logger = Logging(system, getClass)
     val config = ConfigFactory.load()
@@ -99,3 +99,4 @@ object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
 * 6. Add secret key as condition to edit or delete Post, delete Thread
 * 7. Pattern matching on stabilised threads for nextThreadId
 */
+

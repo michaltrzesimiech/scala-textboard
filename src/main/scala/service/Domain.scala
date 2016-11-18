@@ -24,7 +24,7 @@ import spray.json._
 import spray.json.DefaultJsonProtocol
 
 /** Domain model */
-case class Thread(
+case class Thread[Post](
   subject: String,
   posts: HashMap[Int, Post])
 
@@ -35,7 +35,7 @@ case class Post(
 
 /** DB actor*/
 object TextboardDb {
-  case class CreateThread(thread: Thread, post: Post)
+  case class CreateThread(thread: Thread[Post])
   case class OpenThread(id: Int)
   case class DeleteThread(id: Int)
   case object ListAllThreads
@@ -48,7 +48,7 @@ class TextboardDb extends Actor {
   import TextboardDb._
 
   def receive = {
-    case CreateThread(thread, post)          => Universe.createThread(thread, post)
+    case CreateThread(thread)                => Universe.createThread(thread)
     case OpenThread(id)                      => Universe.openThread(id)
     case DeleteThread(id)                    => Universe.deleteThread(id)
     case ListAllThreads                      => Universe.threads.toList
@@ -60,9 +60,9 @@ class TextboardDb extends Actor {
 
 /** DB operations */
 object Universe {
-  var threads: HashMap[Int, Thread] = HashMap.empty
+  var threads: HashMap[Int, Thread[Post]] = HashMap.empty
 
-  implicit def thisThread(id: Int): Option[Thread] = { threads.get(id) }
+  implicit def thisThread(id: Int): Option[Thread[Post]] = { threads.get(id) }
   implicit def thisPost(threadId: Int, postId: Int): Option[HashMap[Int, Post]] = {
     thisThread(threadId) map (_.posts) filter (_.keys == postId)
   }
@@ -73,16 +73,9 @@ object Universe {
     if (lastId.isDefined) lastId + 1 else 1
   }
 
-  def createThread(thread: Thread, post: Post) = {
-    /** adds new thread  */
-    threads = threads += (nextThreadId -> thread)
+  def createThread(thread: Thread[Post]) = { threads = threads += (nextThreadId -> thread) }
 
-    /** begins post hierarchy in thread */
-    threads.last._2.posts += (1 -> post)
-    //    threads.last.posts += (1 -> new Post(pseudonym, email, content))
-  }
-
-  def openThread(id: Int): Option[Thread] = { thisThread(id) }
+  def openThread(id: Int): Option[Thread[Post]] = { thisThread(id) }
 
   def deleteThread(id: Int) = { threads = threads -= id }
 
@@ -100,3 +93,4 @@ object Universe {
     threads.get(threadId) map (_.posts.remove(postId))
   }
 }
+

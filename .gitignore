@@ -1,4 +1,5 @@
 /bin/
+/target/
 /target/config-classes
 /target/resolution-cache
 /target/streams
@@ -6,5 +7,4 @@
 /.cache-tests
 /.settings/
 /project/
-/target/
 /.classpath
