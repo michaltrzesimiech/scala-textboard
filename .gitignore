@@ -5,3 +5,6 @@
 /.cache-main
 /.cache-tests
 /.settings/
+/project/
+/target/
+/.classpath
