@@ -21,32 +21,32 @@ class TestRoutes extends WordSpec with Matchers with ScalatestRouteTest {
     }
   }
 
-//  "The service" should {
-//    "post new thread with success" in {
-//
-//      val json = ByteString(s"""
-//|{
-//| "subject": "test",
-//| "posts": {
-//| "threadId": null,
-//| "post": [
-//| {
-//| "pseudonym": "Michal",
-//| "email": "michal.trzesimiech@gmail.com",
-//| "content": "such content"
-//| }
-//| ]
-//| }
-//|}""".stripMargin)
-//
-//      val postRequest = HttpRequest(
-//        HttpMethods.POST,
-//        uri = "/customer",
-//        entity = HttpEntity(MediaTypes.`application/json`, json))
-//
-//      postRequest ~> TextboardRoutes.route ~> check {
-//        status.isSuccess() shouldEqual true
-//      }
-//    }
-//  }
+  //  "The service" should {
+  //    "post new thread with success" in {
+  //
+  //val json = ByteString(s"""
+  //|{
+  //|  "subject": "test",
+  //|  "posts": {
+  //|    "threadId": null,
+  //|    "post": [
+  //|      {
+  //|        "pseudonym": "Michal",
+  //|        "email": "michal.trzesimiech@gmail.com",
+  //|        "content": "such content"
+  //|      }
+  //|    ]
+  //|  }
+  //|}""".stripMargin)
+  //
+  //      val postRequest = HttpRequest(
+  //        HttpMethods.POST,
+  //        uri = "/customer",
+  //        entity = HttpEntity(MediaTypes.`application/json`, json))
+  //
+  //      postRequest ~> TextboardRoutes.route ~> check {
+  //        status.isSuccess() shouldEqual true
+  //      }
+  //    }
+  //  }
 }

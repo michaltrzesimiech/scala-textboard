@@ -23,6 +23,8 @@ import scala.language.{ implicitConversions, postfixOps }
 import spray.json._
 import spray.json.DefaultJsonProtocol
 
+/** add companion objects, then apply to protocols */
+
 /** Domain model */
 case class Thread[Post](
   subject: String,
@@ -93,4 +95,3 @@ object Universe {
     threads.get(threadId) map (_.posts.remove(postId))
   }
 }
-

@@ -28,6 +28,8 @@ object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
   import scala.concurrent.duration._
   import scala.language.postfixOps
 
+  /** - http://movio.co/blog/composing-endpoints-with-spray/ */
+
   val route: Route = {
     path("threads") {
       get {
@@ -73,8 +75,8 @@ object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
     implicit val executionContext = system.dispatcher
 
     /** Summon DBActor */
-    // implicit val timeout = Timeout(5 seconds)
-    // val boardMaster = system.actorOf(Props[TextboardDb])
+    //    implicit val timeout = Timeout(5 seconds)
+    //    val boardMaster = system.actorOf(Props[TextboardDb])
 
     val logger = Logging(system, getClass)
     val config = ConfigFactory.load()
@@ -85,7 +87,6 @@ object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
     binding
       .flatMap(_.unbind())
       .onComplete(_ => system.terminate())
-
   }
 }
 
@@ -99,4 +100,3 @@ object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
 * 6. Add secret key as condition to edit or delete Post, delete Thread
 * 7. Pattern matching on stabilised threads for nextThreadId
 */
-
