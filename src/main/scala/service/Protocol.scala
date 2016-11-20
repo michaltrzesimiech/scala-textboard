@@ -1,4 +1,4 @@
-package service
+package textboard
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import scala.language.{ implicitConversions }
@@ -6,16 +6,6 @@ import spray.json._
 import spray.json.DefaultJsonProtocol
 import akka.util.ByteString
 import scala.collection.mutable.{ Seq, HashMap }
-
-///** Domain model */
-//case class Thread[Post](
-//  subject: String,
-//  posts: HashMap[Int, Post])
-//
-//case class Post(
-//  pseudonym: String,
-//  email: String,
-//  content: String)
 
 trait TextboardJsonProtocol extends DefaultJsonProtocol with SprayJsonSupport {
   implicit def threadFormat[Post: JsonFormat] = jsonFormat2(Thread.apply[Post])

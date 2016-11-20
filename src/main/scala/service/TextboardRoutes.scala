@@ -1,4 +1,4 @@
-package service
+package textboard
 
 import akka.actor.ActorSystem
 import akka.actor.{ Actor, Props }
@@ -28,32 +28,34 @@ object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
   import scala.concurrent.duration._
   import scala.language.postfixOps
 
-  /** - http://movio.co/blog/composing-endpoints-with-spray/ */
+  /** TODO: http://movio.co/blog/composing-endpoints-with-spray/ */
 
-  val route: Route = {
-    path("threads") {
-      get {
-        val allThreads = Universe.listAllThreads
-        complete(s"Here's a list of all threads: ${allThreads}")
-      } ~
-        post {
-          entity(as[Thread]) { thread =>
-            /** (boardMaster ? Universe.createThread(thread, Post("a", "b", "c"))) */
-            Universe.createThread(thread, Post("a", "b", "c"))
-            complete(s"Created ${thread}")
-          }
-        }
-    } ~
-      path("threads" / "reply") {
-        post {
-          entity(as[Post]) { post =>
-            val threadId = 1
-            Universe.addPost(threadId, post)
-            complete("Added ${post} to thread ${threadId}")
-          }
-        }
-      }
-  }
+  val route: Route = { complete("Dummy route completed") }
+  
+  //  val route: Route = {
+  //    path("threads") {
+  //      get {
+  //        val allThreads = DAO.listAllThreads
+  //        complete(s"Here's a list of all threads: ${allThreads}")
+  //      } ~
+  //        post {
+  //          entity(as[Thread]) { thread =>
+  //            /** (boardMaster ? Universe.createThread(thread, Post("a", "b", "c"))) */
+  //            DAO.createThread(thread, Post("a", "b", "c"))
+  //            complete(s"Created ${thread}")
+  //          }
+  //        }
+  //    } ~
+  //      path("threads" / "reply") {
+  //        post {
+  //          entity(as[Post]) { post =>
+  //            val threadId = 1
+  //            DAO.addPost(threadId, post)
+  //            complete("Added ${post} to thread ${threadId}")
+  //          }
+  //        }
+  //      }
+  //  }
 
   /**
    * TODO: Set routes, least strict to most strict:
