@@ -1,4 +1,4 @@
-package textboard
+package main.scala.textboard
 
 import akka.actor.ActorSystem
 import akka.actor.{ Actor, Props }
@@ -28,10 +28,12 @@ object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
   import scala.concurrent.duration._
   import scala.language.postfixOps
 
-  /** TODO: http://movio.co/blog/composing-endpoints-with-spray/ */
-
+  /**
+   *  TODO: Compose endpoints
+   *  - http://movio.co/blog/composing-endpoints-with-spray/
+   */
   val route: Route = { complete("Dummy route completed") }
-  
+
   //  val route: Route = {
   //    path("threads") {
   //      get {
@@ -76,9 +78,9 @@ object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
     implicit val materializer = ActorMaterializer()
     implicit val executionContext = system.dispatcher
 
-    /** Summon DBActor */
-    //    implicit val timeout = Timeout(5 seconds)
-    //    val boardMaster = system.actorOf(Props[TextboardDb])
+    /** Summon DbActor */
+    implicit val timeout = Timeout(5 seconds)
+    val master = system.actorOf(Props[DbActor])
 
     val logger = Logging(system, getClass)
     val config = ConfigFactory.load()
@@ -92,13 +94,3 @@ object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
   }
 }
 
-/**
-* TODO: Break down
-* 1. Enable creating Threads, listing all Threads
-* 2. Enable opening Threads and deleting Threads by Id
-* 3. Enable adding Posts to Threads
-* 4. Enable editing, deleting Posts
-* 5. Integrate with Postgres
-* 6. Add secret key as condition to edit or delete Post, delete Thread
-* 7. Pattern matching on stabilised threads for nextThreadId
-*/
