@@ -7,7 +7,7 @@ import scala.concurrent.{ ExecutionContextExecutor, Future }
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object DbActor {
-  //  case object ListAllThreads
+  case object ListAllThreads
   case class FindThreadById(thradId: Long)
   case class CreateThread(thread: Thread)
   case class DeleteThreadById(threadId: Long)
@@ -20,7 +20,7 @@ class DbActor extends Actor {
   import DbActor._
 
   def receive = {
-    //  case ListAllThreads => DAO.listAllThreads.toJson
+    case ListAllThreads             => DAO.listAllThreads
     case FindThreadById(threadId)   => DAO.findThreadById(threadId)
     case CreateThread(thread)       => DAO.createThread(thread)
     case DeleteThreadById(threadId) => DAO.deleteThreadById(threadId)

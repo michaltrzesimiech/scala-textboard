@@ -17,7 +17,8 @@ import akka.stream.scaladsl.{ Flow, Sink, Source }
 import com.typesafe.config.{ Config, ConfigFactory }
 import java.util.UUID
 import scala.collection.mutable.{ Seq, HashMap }
-import scala.concurrent.{ ExecutionContextExecutor, Future }
+import scala.concurrent.{ ExecutionContextExecutor, Future, Await }
+import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.io._
 //import scala.io.StdIn
@@ -31,7 +32,7 @@ import spray.json._
 import spray.json.DefaultJsonProtocol
 
 /** Threads table */
-class Threads(tag: Tag) extends Table[Thread](tag, "THREADS") {
+final class Threads(tag: Tag) extends Table[Thread](tag, "THREADS") {
   /** Auto Increment the threadId primary key column */
   def threadId = column[Long]("THREAD_ID", O.PrimaryKey, O.AutoInc)
   def subject = column[String]("SUBJECT" /** TODO: add condition is not null */ )
@@ -48,7 +49,7 @@ class Threads(tag: Tag) extends Table[Thread](tag, "THREADS") {
 }
 
 /** Posts table */
-class Posts(tag: Tag) extends Table[Post](tag, "POSTS") {
+final class Posts(tag: Tag) extends Table[Post](tag, "POSTS") {
   /** Auto Increment the threadId primary key column.*/
   def postId = column[Long]("POST_ID", O.PrimaryKey, O.AutoInc)
   def threadId = column[Long]("THR_ID")
@@ -95,6 +96,9 @@ object DAO extends TableQuery(new Threads(_)) {
 
   implicit def adapter(id: Int) = Some(id.toLong)
 
+  def exec[T](action: DBIO[T]): T =
+    Await.result(db.run(action), 2 seconds)
+
   val setup = DBIO.seq(
     /** Create tables, including primary and foreign keys */
     (threads.schema ++ posts.schema).create,
@@ -111,10 +115,14 @@ object DAO extends TableQuery(new Threads(_)) {
 
   val setupFuture: Future[Unit] = db.run(setup)
 
-  val listAllThreads = threads.result
+  def listAllThreads = threads.result.statements // threads.result.statements = select * from threads
 
   def findThreadById(threadId: Long): Future[Option[Thread]] = {
     db.run(this.filter(_.threadId === threadId).result).map(_.headOption)
+  }
+
+  def findPostById(postId: Long): Future[Option[Post]] = {
+    db.run(posts.filter(_.postId === postId).result).map(_.headOption)
   }
 
   /**
@@ -141,21 +149,25 @@ object DAO extends TableQuery(new Threads(_)) {
       p.content))
   }
 
-  def editPost(postId: Long, secret: UUID, post: Post) = {
-    val thisPost = posts.filter(_.postId === postId)
-    posts.map(p =>
-      Case
-        /** TODO: add actions */
-        If (p.secretId === secret) Then 1
-        If (p.secretId =!= secret) Then 0)
+  /** TODO: Probably doesn't work */
+  implicit def secretOk(postId: Long, secret: Long): Boolean = findPostById(postId).map(_.map(_.secretId)) == secret
+
+  def editPost(postId: Long, secret: Long, newContent: String) = {
+    /** TODO: Add reasonable else instruction on bad secretId */
+    val updateContent = posts.filter(_.postId === postId).map(_.content)
+    if (secretOk(postId, secret)) db.run(updateContent.update(newContent)) else 0
   }
 
-  def deletePost(postId: Long, secret: UUID, post: Post) = {
-    posts.map(p =>
-      Case
-        /** TODO: add actions */
-        If (p.secretId === secret) Then 1
-        If (p.secretId =!= secret) Then 0)
+  def deletePost(postId: Long, secret: Long, post: Post) = {
+    /** TODO: Add reasonable else instruction on bad secretId */
+    if (secretOk(postId, secret)) db.run(posts.filter(_.postId === postId).delete) else 0
+
+    /**
+     * OR:
+     * posts.map(p =>
+     * Case
+     * If (p.secretId === secret) Then DELETE
+     * If (p.secretId =!= secret) Then REFUSE))
+     */
   }
 }
-
