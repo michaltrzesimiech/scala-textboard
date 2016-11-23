@@ -7,26 +7,29 @@ import scala.concurrent.{ ExecutionContextExecutor, Future }
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object DbActor {
-  case object ListAllThreads
+  case class ListAllThreads(limit: Int, offset: Int)
+  case class OpenThread(threadId: Long)
   case class FindThreadById(thradId: Long)
   case class CreateThread(thread: Thread)
   case class DeleteThreadById(threadId: Long)
   case class CreatePost(post: Post)
-  //  case class EditPost(postId, secret, post)
-  //  case class DeletePost(postId, secret, post)
+  case class EditPost(threadId: Long, postId: Long, secret: Long, newContent: String)
+  case class DeletePost(postId: Long, secret: Long)
 }
 
 class DbActor extends Actor {
   import DbActor._
 
   def receive = {
-    case ListAllThreads             => DAO.listAllThreads
-    case FindThreadById(threadId)   => DAO.findThreadById(threadId)
-    case CreateThread(thread)       => DAO.createThread(thread)
-    case DeleteThreadById(threadId) => DAO.deleteThreadById(threadId)
-    case CreatePost(post)           => DAO.createPost(post)
-    //    case EditPost(postId, secret, post) => DAO.editPost(postId, secret, post)
-    //    case DeletePost(postId, secret, post) => DAO.deletePost(postId, secret, post)
+    case ListAllThreads(limit, offset)                  => DAO.listAllThreads(limit, offset)
+    case OpenThread(threadId)                           => DAO.openThread(threadId)
+    case FindThreadById(threadId)                       => DAO.findThreadById(threadId)
+    case CreateThread(thread)                           => DAO.createThread(thread)
+    case DeleteThreadById(threadId)                     => DAO.deleteThreadById(threadId)
+    case CreatePost(post)                               => DAO.createPost(post)
+    /** TODO: rethink and implement */
+    case EditPost(threadId, postId, secret, newContent) => DAO.editPost(threadId, postId, secret, newContent)
+    case DeletePost(postId, secret)                     => DAO.deletePost(postId, secret)
   }
 }
 

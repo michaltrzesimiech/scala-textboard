@@ -7,7 +7,27 @@ import scala.language.{ implicitConversions }
 import spray.json._
 import spray.json.DefaultJsonProtocol
 
+/**
+ * Root json protocol class for others to extend from
+ */
 trait TextboardJsonProtocol extends DefaultJsonProtocol with SprayJsonSupport {
+  implicit object AnyJsonFormat extends JsonFormat[Any] {
+    def write(x: Any) = x match {
+      case n: Int                   => JsNumber(n)
+      case s: String                => JsString(s)
+      //      case u: UUID => JsString(u.toString)
+      case b: Boolean if b == true  => JsTrue
+      case b: Boolean if b == false => JsFalse
+    }
+    def read(value: JsValue) = value match {
+      case JsNumber(n) => n.intValue()
+      case JsString(s) => s
+      //      case JsString(u) => UUID.fromString(u)
+      case JsTrue      => true
+      case JsFalse     => false
+    }
+  }
+
   implicit object UuidJsonFormat extends RootJsonFormat[UUID] {
     def write(x: UUID) = JsString(x.toString) //Never execute this line
     def read(value: JsValue) = value match {
@@ -15,6 +35,7 @@ trait TextboardJsonProtocol extends DefaultJsonProtocol with SprayJsonSupport {
       case x           => deserializationError("Expected UUID as JsString, but got " + x)
     }
   }
+
   implicit val threadFormat = jsonFormat2(Thread.apply)
   implicit val postFormat = jsonFormat6(Post.apply)
 }
@@ -37,6 +58,4 @@ object tempJson {
 |    "content": "tentatively triggered"
 |}""".stripMargin)
 }
-
-
 
