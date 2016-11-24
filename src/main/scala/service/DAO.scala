@@ -24,7 +24,6 @@ import scala.io._
 import scala.language.{ implicitConversions, postfixOps }
 import slick._
 import slick.util._
-//import slick.driver.PostgresDriver.backend._
 import slick.driver.PostgresDriver.api._
 import slick.lifted.{ AbstractTable, Rep, ProvenShape, Case }
 import spray.json._
@@ -94,50 +93,53 @@ object DAO extends TableQuery(new Threads(_)) {
     // ???   db.run(this returning this.map(_.threadId) into ((acc, threadId) => acc.copy(threadId = Some(threadId))) += thread)
   }
 
-  def deleteThreadById(threadId: Long): Future[Int] = {
-    db.run(this.filter(_.threadId === threadId).delete)
-  }
-
-  def createPost(p: Post) = {
+  def createPost(threadId: Option[Long], pseudonym: String, email: String, content: String) = {
     db.run(posts += Post(
       None,
-      p.threadId,
+      threadId,
       Some(java.util.UUID.randomUUID),
-      p.pseudonym,
-      p.email,
-      p.content))
+      pseudonym,
+      email,
+      content))
   }
 
   /**
    *  Verify post secret
    */
-  implicit def secretOk(postId: Long, secret: Long): Boolean = {
+  implicit def secretOk(postId: Long, secret: String): Boolean = {
     val postSecret = exec(posts.filter(_.postId === postId).map(_.secretId).result)
-    postSecret == secret
+    postSecret.toString == secret
   }
 
-  def editPost(threadId: Long, postId: Long, secret: Long, newContent: String) = {
+  def editPost(threadId: Long, postId: Long, secret: String, newContent: String) = {
     val thisPost = posts.filter(_.threadId === threadId)
     val postsContent = thisPost.filter(_.postId === postId).map(_.content)
 
-    if (secretOk(postId, secret)) db.run(postsContent.update(newContent))
-    /** TODO: Add reasonable else or refactor to pattern matching */
-    else 0
+    if (secretOk(postId, secret))
+      db.run(postsContent.update(newContent))
+    else
+      StatusCodes.Forbidden
   }
 
-  def deletePost(postId: Long, secret: Long) = {
-    if (secretOk(postId, secret)) db.run(posts.filter(_.postId === postId).delete)
+  def deletePost(postId: Long, secret: String) = {
     /**
-     * TODO:
-     * Add reasonable else
      * or: refactor to pattern matching
      * or:
      *         posts.map(p =>
      *             Case
      *                 If (p.secretId === secret) Then DELETE
      *                 If (p.secretId =!= secret) Then REFUSE))
+     *
+     * TODO: TEST
      */
-    else 0
+    if (secretOk(postId, secret))
+      db.run(posts.filter(_.postId === postId).delete)
+    else
+      StatusCodes.Forbidden
   }
-}
 
+  //  def deleteThreadById(threadId: Long): Future[Int] = {
+  //    db.run(posts.filter(_.threadId === threadId).delete)
+  //    db.run(threads.filter(_.threadId === threadId).delete)
+  //  }
+}

@@ -15,14 +15,14 @@ trait TextboardJsonProtocol extends DefaultJsonProtocol with SprayJsonSupport {
     def write(x: Any) = x match {
       case n: Int                   => JsNumber(n)
       case s: String                => JsString(s)
-      //      case u: UUID => JsString(u.toString)
+      case u: UUID                  => JsString(u.toString)
       case b: Boolean if b == true  => JsTrue
       case b: Boolean if b == false => JsFalse
     }
     def read(value: JsValue) = value match {
       case JsNumber(n) => n.intValue()
       case JsString(s) => s
-      //      case JsString(u) => UUID.fromString(u)
+      case JsArray(a)  => List(a)
       case JsTrue      => true
       case JsFalse     => false
     }

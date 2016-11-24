@@ -30,8 +30,10 @@ import scala.reflect.ClassTag
 import scala.util.{ Try, Success, Failure }
 import spray.json._
 
-object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
+object Service extends TextboardJsonProtocol with SprayJsonSupport {
   import akka.pattern.ask
+
+  import DbActor._
 
   /** Invoke ActorSystem, materializes Actor and execution context */
   implicit val system = ActorSystem()
@@ -40,7 +42,7 @@ object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
 
   /** Summon DbActor */
   implicit val timeout: Timeout = Timeout(5 seconds)
-  val master: ActorRef = system.actorOf(Props[DbActor])
+  val master: ActorRef = system.actorOf(Props[DbActor], name = "master")
 
   /**
    * Return the routes defined for endpoints:
@@ -55,55 +57,68 @@ object TextboardRoutes extends TextboardJsonProtocol with SprayJsonSupport {
    * @param ec The implicit execution context to use for routes
    * @param mater The implicit materializer to use for routes
    */
-  def route(implicit system: ActorSystem, ec: ExecutionContext, mater: Materializer): Route = {
+  def route(implicit system: ActorSystem,
+            ec: ExecutionContext,
+            mater: Materializer,
+            marshallToPost: ToResponseMarshaller[Post],
+            marshallToThread: ToResponseMarshaller[Thread],
+            unmarshallPost: FromRequestUnmarshaller[Post],
+            unmarshallThread: FromRequestUnmarshaller[Thread]): Route = {
     path("thread" / IntNumber / "posts" / IntNumber) { (threadId, postId) =>
-      parameter('secret_id.as[Long]) { secret_id =>
-        put /** upon existing post in thread - 1 */ {
+      parameter('secret_id.as[String]) { secret_id =>
+        put /** edit upon existing post in thread - 1 */ {
           entity(as[Post]) { post =>
-            // val futUpdatePost = (master ? DbActor.EditPost(postId, ${ secret_id }, post.content))
-            complete(s"update post $postId in thread $threadId if secret ${secret_id} is OK")
+            (master ? EditPost(threadId, postId, secret_id, post.content))
+            // log.info(s"Editing post $postId in thread $threadId with secret ${secret_id} handled OK")
+            complete(StatusCodes.OK)
           }
         } ~
           delete /** post in thread - 2 */ {
-            // val futDeletePost = (master ? DbActor.DeletePost(postId, ${secret_id}))
-            complete(s"delete post $postId in thread $threadId if secret ${secret_id} is OK")
+            (master ? DeletePost(postId, secret_id))
+            // log.info(s"Deleting post $postId in thread $threadId with secret ${secret_id} handled OK")
+            complete(Future.successful(StatusCodes.OK))
           }
       }
     } ~
-      path("thread" / IntNumber / "posts") { id =>
-        get /** and open specific thread - 3 */ {
-          val futOpenThread = (master ? DbActor.OpenThread(id)).mapTo[Thread]
+      path("thread" / IntNumber / "posts") { threadId =>
+        get /** all posts in specific thread - 3 */ {
+          val formattedId = threadId.toLong
+          val futOpenThread = (master ? OpenThread(formattedId)).mapTo[List[Post]]
           complete(futOpenThread)
         } ~
           post /** reply to specific thread - 4 */ {
             entity(as[Post]) { post =>
-              /** TODO: /IntNumer => post.threadId */
-              val futCreatePost = (master ? DbActor.CreatePost(post)).mapTo[Post]
-              /** TODO: print UUID */
-              complete(futCreatePost)
+              val formattedId = Some(threadId.toLong)
+              val futCreatePost = (master ? CreatePost(
+                formattedId,
+                post.pseudonym,
+                post.email,
+                post.content)).
+                mapTo[Post]
+              val secretId = futCreatePost.map(_.secretId)
+              complete(StatusCodes.Created -> s"(with secret ID $secretId)")
             }
           }
       } ~
       path("thread") {
         (parameter('limit.as[Int]) & parameter('offset.as[Int])) { (limit, offset) =>
           get /** all threads - 5 */ {
-            val futListAllThreads = (master ? DbActor.ListAllThreads(limit, offset)).mapTo[List[Thread]]
+            val futListAllThreads = (master ? ListAllThreads(limit, offset)).mapTo[List[Thread]]
             complete(futListAllThreads)
           }
         }
       } ~
       post /** new thread - 6 */ {
-        // respondWithMediaType(`application/json`) {}
         entity(as[Thread]) { thread =>
-          val futPostThread = (master ? DbActor.CreateThread(thread)).mapTo[Thread]
-          complete(futPostThread)
+          (master ? CreateThread(thread)).mapTo[Thread]
+          complete(Future.successful(StatusCodes.Created))
         }
       }
   }
 
   def run: Unit = {
-    val log: LoggingAdapter = Logging(system, getClass)
     val config = ConfigFactory.load()
+    val log: LoggingAdapter = Logging(system, getClass)
 
     /** Bind routes to server, gracefully terminate server when done */
     val binding = Http().bindAndHandle(route, config.getString("http.interface"), config.getInt("http.port"))

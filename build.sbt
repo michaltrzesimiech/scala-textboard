@@ -16,6 +16,7 @@ libraryDependencies ++=  Seq(
              "org.scalatest"         %%    "scalatest"    	          			  % "3.0.0"     %    "test",
              "com.typesafe.slick"    %%    "slick"            	      			  % "3.1.1",
              "com.typesafe.slick"    %%    "slick-hikaricp"           			  % "3.1.1",
+			 "com.typesafe.slick" 	 % 	   "slick-testkit_2.11" 				  % "3.1.1",
 			 "com.google.inject" 	 % 	   "guice" 								  % "3.0",
              "com.typesafe.akka"     %%    "akka-actor"                           % "2.4.12"
 )

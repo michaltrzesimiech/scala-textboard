@@ -30,8 +30,6 @@ import slick.lifted.{ AbstractTable, Rep, ProvenShape, Case }
 import spray.json._
 import spray.json.DefaultJsonProtocol
 
-/** TODO: add "com.typesafe.slick" % "slick-testkit_2.11" % "3.1.1" */
-
 /**
  *  Threads table
  *  @param threadId Auto-incremented primary key column holding unique ID for Thread.
@@ -96,4 +94,6 @@ object Post {
    */
   val posts: TableQuery[Posts] = TableQuery[Posts]
 }
+
+
 
