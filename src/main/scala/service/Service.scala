@@ -1,9 +1,7 @@
 package main.scala.textboard
 
 import akka.actor._
-import akka.actor.{ ActorSystem, Actor, Props, ActorRef }
-import akka.Done
-import akka.event.{ LoggingAdapter, Logging }
+import akka.actor.{ Actor, Props, ActorRef }
 import akka.http.scaladsl.client.RequestBuilding
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
@@ -17,37 +15,31 @@ import akka.http.scaladsl.unmarshalling.{ Unmarshal, FromRequestUnmarshaller }
 import akka.stream.{ ActorMaterializer, Materializer }
 import akka.stream.scaladsl.{ Flow, Sink, Source }
 import akka.util.Timeout
-import com.typesafe.config.{ Config, ConfigFactory }
 import java.util.UUID
-import scala.collection.mutable.{ HashMap }
 import scala.concurrent.{ ExecutionContext, ExecutionContextExecutor, Future }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.io._
 import scala.io.StdIn
 import scala.language.{ implicitConversions, postfixOps }
-import scala.reflect.ClassTag
-import scala.util.{ Try, Success, Failure }
+//import scala.util.{ Try, Success, Failure }
 import spray.json._
 
 object Service extends TextboardJsonProtocol with SprayJsonSupport {
   import akka.pattern.ask
-
   import DbActor._
+  import WebServer._
 
-  /** Invoke ActorSystem, materializes Actor and execution context */
-  implicit val system = ActorSystem()
-  implicit val ec: ExecutionContext = system.dispatcher
-  implicit val mater: ActorMaterializer = ActorMaterializer()
-
-  /** Summon DbActor */
+  /**
+   *  Summons DbActor
+   */
   implicit val timeout: Timeout = Timeout(5 seconds)
   val master: ActorRef = system.actorOf(Props[DbActor], name = "master")
 
   /**
-   * Return the routes defined for endpoints:
-   * 1. PUT         /thread/:thread_id/posts/:secret_id
-   * 2. DELETE     /thread/:thread_id/posts/:secret_id
+   * Returns the routes defined for endpoints:
+   * 1. PUT         /thread/:thread_id/posts/:post_id?secret_id=x
+   * 2. DELETE     /thread/:thread_id/posts/:post_id?secret_id=x
    * 3. GET         /thread/:thread_id/posts
    * 4. POST         /thread/:thread_id/posts
    * 5. GET         /threads?limit=x&offset=x
@@ -59,11 +51,11 @@ object Service extends TextboardJsonProtocol with SprayJsonSupport {
    */
   def route(implicit system: ActorSystem,
             ec: ExecutionContext,
-            mater: Materializer,
-            marshallToPost: ToResponseMarshaller[Post],
-            marshallToThread: ToResponseMarshaller[Thread],
-            unmarshallPost: FromRequestUnmarshaller[Post],
-            unmarshallThread: FromRequestUnmarshaller[Thread]): Route = {
+            mater: Materializer /*,
+marshallToPost: ToResponseMarshaller[Post],
+marshallToThread: ToResponseMarshaller[Thread],
+unmarshallPost: FromRequestUnmarshaller[Post],
+unmarshallThread: FromRequestUnmarshaller[Thread]*/ ): Route = {
     path("thread" / IntNumber / "posts" / IntNumber) { (threadId, postId) =>
       parameter('secret_id.as[String]) { secret_id =>
         put /** edit upon existing post in thread - 1 */ {
@@ -83,7 +75,7 @@ object Service extends TextboardJsonProtocol with SprayJsonSupport {
       path("thread" / IntNumber / "posts") { threadId =>
         get /** all posts in specific thread - 3 */ {
           val formattedId = threadId.toLong
-          val futOpenThread = (master ? OpenThread(formattedId)).mapTo[List[Post]]
+          val futOpenThread = (master ? OpenThread(formattedId)).mapTo[List[Post] /*ToResponseMarshallable*/ ]
           complete(futOpenThread)
         } ~
           post /** reply to specific thread - 4 */ {
@@ -93,14 +85,13 @@ object Service extends TextboardJsonProtocol with SprayJsonSupport {
                 formattedId,
                 post.pseudonym,
                 post.email,
-                post.content)).
-                mapTo[Post]
+                post.content)).mapTo[Post]
               val secretId = futCreatePost.map(_.secretId)
               complete(StatusCodes.Created -> s"(with secret ID $secretId)")
             }
           }
       } ~
-      path("thread") {
+      path("threads") {
         (parameter('limit.as[Int]) & parameter('offset.as[Int])) { (limit, offset) =>
           get /** all threads - 5 */ {
             val futListAllThreads = (master ? ListAllThreads(limit, offset)).mapTo[List[Thread]]
@@ -114,18 +105,5 @@ object Service extends TextboardJsonProtocol with SprayJsonSupport {
           complete(Future.successful(StatusCodes.Created))
         }
       }
-  }
-
-  def run: Unit = {
-    val config = ConfigFactory.load()
-    val log: LoggingAdapter = Logging(system, getClass)
-
-    /** Bind routes to server, gracefully terminate server when done */
-    val binding = Http().bindAndHandle(route, config.getString("http.interface"), config.getInt("http.port"))
-    println(s"Server running. Press ENTER to stop."); StdIn.readLine()
-    binding
-      .flatMap(_.unbind())
-      .onComplete(_ => system.terminate())
-
   }
 }

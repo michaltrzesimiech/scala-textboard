@@ -3,7 +3,7 @@ package main.scala.textboard
 import akka.actor.ActorSystem
 import akka.actor.{ Actor, Props }
 import akka.stream.{ ActorMaterializer, Materializer }
-import scala.concurrent.{ ExecutionContextExecutor, Future }
+import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object DbActor {

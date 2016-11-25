@@ -1,16 +1,10 @@
 package main.scala.textboard
 
-import akka.actor.ActorSystem
-import akka.actor.{ Actor, Props }
-import akka.event.{ LoggingAdapter, Logging }
-//import akka.http.scaladsl.client.RequestBuilding
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.{ ToResponseMarshallable, ToResponseMarshaller }
 import akka.http.scaladsl.model._
-//import akka.http.scaladsl.model.{ HttpMethods, StatusCodes }
 import akka.http.scaladsl.server._
-//import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.unmarshalling.{ Unmarshal, FromRequestUnmarshaller }
 import akka.stream.{ ActorMaterializer, Materializer }
 import akka.stream.scaladsl.{ Flow, Sink, Source }
@@ -24,11 +18,8 @@ import scala.io._
 import scala.language.{ implicitConversions, postfixOps }
 import slick._
 import slick.util._
-//import slick.driver.PostgresDriver.backend._
 import slick.driver.PostgresDriver.api._
 import slick.lifted.{ AbstractTable, Rep, ProvenShape, Case }
-import spray.json._
-import spray.json.DefaultJsonProtocol
 
 /**
  *  Threads table
@@ -94,6 +85,3 @@ object Post {
    */
   val posts: TableQuery[Posts] = TableQuery[Posts]
 }
-
-
-
