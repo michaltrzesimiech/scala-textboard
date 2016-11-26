@@ -28,7 +28,7 @@ import slick.lifted.{ AbstractTable, Rep, ProvenShape, Case }
 final class Threads(tag: Tag) extends Table[Thread](tag, "THREADS") {
   /** Auto Increment the threadId primary key column */
   def threadId = column[Long]("THREAD_ID", O.PrimaryKey, O.AutoInc)
-  def subject = column[String]("SUBJECT" /** TODO: add condition is not null */ )
+  def subject = column[String]("SUBJECT")
 
   def * : ProvenShape[Thread] = (threadId.?, subject) <> ((Thread.apply _).tupled, Thread.unapply)
 }
@@ -38,14 +38,20 @@ final class Threads(tag: Tag) extends Table[Thread](tag, "THREADS") {
  *  @param postId Auto-incremented primary key column holding unique ID for Post.
  */
 final class Posts(tag: Tag) extends Table[Post](tag, "POSTS") {
-  def postId = column[Long]("POST_ID", O.PrimaryKey, O.AutoInc)
-  def threadId = column[Long]("THR_ID")
-  def secretId = column[UUID]("SECRET", O.AutoInc)
+  def id = column[Long]("ID", O.PrimaryKey, O.AutoInc)
+  def threadId = column[Long]("THREAD_ID")
+  def secretId = column[String]("SECRET")
   def pseudonym = column[String]("PSEUDONYM")
   def email = column[String]("EMAIL")
   def content = column[String]("CONTENT")
 
-  def * : ProvenShape[Post] = (postId.?, threadId.?, secretId.?, pseudonym, email, content) <> ((Post.apply _).tupled, Post.unapply)
+  def * : ProvenShape[Post] = (
+    id.?,
+    threadId.?,
+    secretId,
+    pseudonym,
+    email,
+    content) <> ((Post.apply _).tupled, Post.unapply)
 
   /**
    *  A reified foreign key relation that can be navigated to create a join
@@ -67,7 +73,7 @@ case class Thread(
 case class Post(
   postId: Option[Long] = None,
   threadId: Option[Long],
-  secretId: Option[UUID],
+  secretId: String,
   pseudonym: String,
   email: String,
   content: String)

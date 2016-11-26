@@ -40,30 +40,29 @@ trait DatabaseService extends ConfigHelper {
 
   val driver = slick.driver.PostgresDriver
   val db = Database.forDataSource(dataSource)
-  /** no-jdbc: implicit val db = Database.forConfig("database") TODO: delete when finished  */
-
   db.createSession()
 
-  lazy val ddl = threads.schema ++ posts.schema
+  val ddl = threads.schema ++ posts.schema
+  implicit def secretId: String = UUID.randomUUID.toString()
 
-  lazy val initSetup = {
+  val initSetup = {
     DBIO.seq(
       /**
        *  Create tables, including primary and foreign keys
        */
-       ddl.create,
+      ddl.create,
 
       /**
        *  Insert dummy threads and posts
        */
-      threads += Thread(None, "one subject"),
-      threads += Thread(None, "another subject"),
+      threads += Thread(None, "SUBJECT A"),
+      threads += Thread(None, "SUBJECT B"),
       posts ++= Seq(
-        Post(None, 1, Some(java.util.UUID.randomUUID), "one author", "author@one.com", "0110101"),
-        Post(None, 1, Some(java.util.UUID.randomUUID), "other author", "author@other.com", "TRIGGERED"),
-        Post(None, 2, Some(java.util.UUID.randomUUID), "troll author", "author@troll.lol", "0202202")))
+        Post(None, 1, secretId, "Agent A", "agent@one.com", "COMMENT"),
+        Post(None, 1, secretId, "Agent B", "author@other.com", "COMMENT"),
+        Post(None, 2, secretId, "Agent C", "author@troll.lol", "COMMENT")))
   }
 
-  lazy val futureInitialSetup: Future[Unit] = db.run(initSetup)
+  val futureInitialSetup: Future[Unit] = db.run(initSetup)
 
 }

@@ -13,42 +13,46 @@ import slick.util._
 import slick.driver.PostgresDriver.api._
 import slick.lifted.{ AbstractTable, Rep, ProvenShape, Case }
 
-object DAO extends TableQuery(new Threads(_)) with DatabaseService {
-
-  import Thread._
-  import Post._
-
+trait DaoHelpers extends DatabaseService {
   /**
    * Execution helper #1: await database action
    */
-  implicit def exec[T](action: DBIO[T]): T =
+  def exec[T](action: DBIO[T]): T =
     Await.result(db.run(action), 2 seconds)
 
   /**
    * Execution helper #2: implicitly turn Int to expected Option[Long]
    */
   implicit def intToOptionLong(id: Int) = Some(id.toLong)
+}
+
+object DAO extends TableQuery(new Threads(_)) with DatabaseService with DaoHelpers {
+
+  import Thread._
+  import Post._
 
   /**
-   * List all threads
-   * - "threads.drop(x).take(y)" is equivalent of SQL: "select * from threads limit y offset x"
-   * - "threads.result.statements" is equivalent of SQL: "select * from threads"
+   *  Verify post secret
    */
-  def listAllThreads(offset: Int, limit: Int) = {
-    exec(threads.drop(offset).take(limit).result)
+  //  def secretOk(postId: Long, secret: String): Boolean = {
+  //    val postSecret = exec(posts.filter(_.id === postId).map(_.secretId).result)
+  //    postSecret.toString == secret
+  //  }
+  def secretOk(postId: Long, secret: String): Boolean = {
+    val postSecret = posts.filter(_.id === postId).map(_.secretId).result
+    postSecret.toString == secret
   }
 
-  def openThread(threadId: Long) = {
-    exec(posts.filter(_.threadId === threadId).result)
+  def listAllThreads(offset: Int, limit: Int): Iterable[String] = {
+    /**
+     * - "threads.drop(x).take(y)" is equivalent of SQL: "select * from threads limit y offset x"
+     * - "threads.result.statements" is equivalent of SQL: "select * from threads"
+     */
+    val sortedThreads = threads.sortBy(_.threadId.desc)
+    sortedThreads.drop(offset).take(limit).result.statements
   }
 
-  def findThreadById(threadId: Long): Future[Option[Thread]] = {
-    db.run(this.filter(_.threadId === threadId).result).map(_.headOption)
-  }
-
-  def findPostById(postId: Long): Future[Option[Post]] = {
-    db.run(posts.filter(_.postId === postId).result).map(_.headOption)
-  }
+  def justListAllThreads = { threads.result }
 
   def createThread(t: Thread) = {
     exec(threads += Thread(None, t.subject))
@@ -56,26 +60,16 @@ object DAO extends TableQuery(new Threads(_)) with DatabaseService {
   }
 
   def createPost(threadId: Option[Long], pseudonym: String, email: String, content: String) = {
-    db.run(posts += Post(
-      None,
-      threadId,
-      Some(java.util.UUID.randomUUID),
-      pseudonym,
-      email,
-      content))
+    exec(posts += Post(None, threadId, secretId, pseudonym, email, content))
   }
 
-  /**
-   *  Verify post secret
-   */
-  implicit def secretOk(postId: Long, secret: String): Boolean = {
-    val postSecret = exec(posts.filter(_.postId === postId).map(_.secretId).result)
-    postSecret.toString == secret
+  def openThread(threadId: Long) = {
+    exec(posts.filter(_.threadId === threadId).result)
   }
 
   def editPost(threadId: Long, postId: Long, secret: String, newContent: String) = {
     val thisPost = posts.filter(_.threadId === threadId)
-    val postsContent = thisPost.filter(_.postId === postId).map(_.content)
+    val postsContent = thisPost.filter(_.id === postId).map(_.content)
 
     if (secretOk(postId, secret))
       db.run(postsContent.update(newContent))
@@ -84,16 +78,8 @@ object DAO extends TableQuery(new Threads(_)) with DatabaseService {
   }
 
   def deletePost(postId: Long, secret: String) = {
-    /**
-     * or: refactor to pattern matching
-     * or:
-     *         posts.map(p =>
-     *             Case
-     *                 If (p.secretId === secret) Then DELETE
-     *                 If (p.secretId =!= secret) Then REFUSE))
-     */
     if (secretOk(postId, secret))
-      db.run(posts.filter(_.postId === postId).delete)
+      db.run(posts.filter(_.id === postId).delete)
     else
       StatusCodes.Forbidden
   }
@@ -102,4 +88,13 @@ object DAO extends TableQuery(new Threads(_)) with DatabaseService {
   //    db.run(posts.filter(_.threadId === threadId).delete)
   //    db.run(threads.filter(_.threadId === threadId).delete)
   //  }
+
+  //  def findThreadById(threadId: Long): Future[Option[Thread]] = {
+  //    db.run(this.filter(_.threadId === threadId).result).map(_.headOption)
+  //  }
+
+  //  def findPostById(postId: Long): Future[Option[Post]] = {
+  //    db.run(posts.filter(_.id === postId).result).map(_.headOption)
+  //  }
+
 }
