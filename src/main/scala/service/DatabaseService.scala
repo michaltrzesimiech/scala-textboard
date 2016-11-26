@@ -9,21 +9,49 @@ import slick._
 import slick.util._
 import slick.driver.PostgresDriver.api._
 import slick.lifted.{ AbstractTable, Rep, ProvenShape, Case }
+import com.zaxxer.hikari.{ HikariConfig, HikariDataSource }
+import com.typesafe.config.ConfigFactory
 
-trait DatabaseService {
+trait ConfigHelper {
+  private val config = ConfigFactory.load()
+
+  private val httpConfig = config.getConfig("http")
+  private val dbConfig = config.getConfig("database")
+
+  implicit val httpHost = httpConfig.getString("interface")
+  implicit val httpPort = httpConfig.getInt("port")
+
+  implicit val jdbcUrl = dbConfig.getString("url")
+  implicit val dbUser = dbConfig.getString("user")
+  implicit val dbPassword = dbConfig.getString("password")
+}
+
+trait DatabaseService extends ConfigHelper {
   import Thread._
   import Post._
   import DAO._
 
-  implicit val db = Database.forConfig("database")
-  val ddl = threads.schema ++ posts.schema
+  private val hikariConfig = new HikariConfig()
+  hikariConfig.setJdbcUrl(jdbcUrl)
+  hikariConfig.setUsername(dbUser)
+  hikariConfig.setPassword(dbPassword)
 
-  val setup = {
+  private val dataSource = new HikariDataSource(hikariConfig)
+
+  val driver = slick.driver.PostgresDriver
+  val db = Database.forDataSource(dataSource)
+  /** no-jdbc: implicit val db = Database.forConfig("database") TODO: delete when finished  */
+
+  db.createSession()
+
+  lazy val ddl = threads.schema ++ posts.schema
+
+  lazy val initSetup = {
     DBIO.seq(
       /**
        *  Create tables, including primary and foreign keys
        */
-      ddl.create,
+       ddl.create,
 
       /**
        *  Insert dummy threads and posts
@@ -36,6 +64,6 @@ trait DatabaseService {
         Post(None, 2, Some(java.util.UUID.randomUUID), "troll author", "author@troll.lol", "0202202")))
   }
 
-  val setupFuture: Future[Unit] = db.run(setup)
+  lazy val futureInitialSetup: Future[Unit] = db.run(initSetup)
 
 }

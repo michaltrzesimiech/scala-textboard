@@ -28,7 +28,7 @@ object WebServer extends App with DatabaseService {
   /**
    * Creates tables, then fills them with dummy data
    */
-  Await.result(db.run(setup), Duration.Inf)
+  //  Await.result(db.run(initSetup), Duration.Inf)
 
   val config: Config = ConfigFactory.load()
   val log: LoggingAdapter = Logging(system, getClass)

@@ -12,6 +12,7 @@ libraryDependencies ++=  Seq(
              "org.postgresql"        %     "postgresql"               			  % "9.4-1206-jdbc41",
              "org.scalactic" 		 %%    "scalactic" 							  % "3.0.0",
              "org.scalatest"         %%    "scalatest"    	          			  % "3.0.0"     %    "test",
+			 "org.slf4j" 			 % 	   "slf4j-simple" 						  % "1.7.21",
              "com.typesafe.slick"    %%    "slick"            	      			  % "3.1.1",
              "com.typesafe.slick"    %%    "slick-hikaricp"           			  % "3.1.1",
 			 "com.typesafe.slick" 	 % 	   "slick-testkit_2.11" 				  % "3.1.1",

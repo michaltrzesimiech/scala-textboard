@@ -73,14 +73,19 @@
       <attribute name="javadoc_location" value="jar:file:C:\Users\Work\.ivy2\cache\org.scalactic\scalactic_2.11\docs\scalactic_2.11-3.0.0-javadoc.jar!/"/>
     </attributes>
   </classpathentry>
+  <classpathentry sourcepath="C:\Users\Work\.ivy2\cache\org.slf4j\slf4j-simple\srcs\slf4j-simple-1.7.21-sources.jar" kind="lib" path="C:\Users\Work\.ivy2\cache\org.slf4j\slf4j-simple\jars\slf4j-simple-1.7.21.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:C:\Users\Work\.ivy2\cache\org.slf4j\slf4j-simple\docs\slf4j-simple-1.7.21-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="C:\Users\Work\.ivy2\cache\org.slf4j\slf4j-api\srcs\slf4j-api-1.7.21-sources.jar" kind="lib" path="C:\Users\Work\.ivy2\cache\org.slf4j\slf4j-api\jars\slf4j-api-1.7.21.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:C:\Users\Work\.ivy2\cache\org.slf4j\slf4j-api\docs\slf4j-api-1.7.21-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
   <classpathentry sourcepath="C:\Users\Work\.ivy2\cache\com.typesafe.slick\slick_2.11\srcs\slick_2.11-3.1.1-sources.jar" kind="lib" path="C:\Users\Work\.ivy2\cache\com.typesafe.slick\slick_2.11\bundles\slick_2.11-3.1.1.jar">
     <attributes>
       <attribute name="javadoc_location" value="jar:file:C:\Users\Work\.ivy2\cache\com.typesafe.slick\slick_2.11\docs\slick_2.11-3.1.1-javadoc.jar!/"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry sourcepath="C:\Users\Work\.ivy2\cache\org.slf4j\slf4j-api\srcs\slf4j-api-1.7.10-sources.jar" kind="lib" path="C:\Users\Work\.ivy2\cache\org.slf4j\slf4j-api\jars\slf4j-api-1.7.10.jar">
-    <attributes>
-      <attribute name="javadoc_location" value="jar:file:C:\Users\Work\.ivy2\cache\org.slf4j\slf4j-api\docs\slf4j-api-1.7.10-javadoc.jar!/"/>
     </attributes>
   </classpathentry>
   <classpathentry sourcepath="C:\Users\Work\.ivy2\cache\com.typesafe.slick\slick-hikaricp_2.11\srcs\slick-hikaricp_2.11-3.1.1-sources.jar" kind="lib" path="C:\Users\Work\.ivy2\cache\com.typesafe.slick\slick-hikaricp_2.11\bundles\slick-hikaricp_2.11-3.1.1.jar">
