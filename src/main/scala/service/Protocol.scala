@@ -5,6 +5,7 @@ import java.util.UUID
 import scala.concurrent.Future
 import spray.json._
 import spray.json.DefaultJsonProtocol
+import com.wix.accord.dsl._
 
 /**
  * Root json protocol class for others to extend from
@@ -28,20 +29,17 @@ trait TextboardJsonProtocol extends DefaultJsonProtocol with SprayJsonSupport {
   //    }
   //  }
 
-  //  implicit object UuidJsonFormat extends RootJsonFormat[UUID] {
-  //    def write(x: UUID) = JsString(x.toString) //Never execute this line
-  //    def read(value: JsValue) = value match {
-  //      case JsString(x) => UUID.fromString(x)
-  //      case x           => deserializationError("Expected UUID as JsString, but got " + x)
-  //    }
-  //  }
+  implicit val threadValidation = validator[Thread] { thread =>
+    thread.subject as "subject" is notEmpty
+    thread.subject.length() as "subject" should be > 2
+  }
 
-  //  http://labs.unacast.com/2016/03/03/building-microservices-with-akka-http/
-  //  implicit val threadValidation = validator[Thread] { thread =>
-  //    thread.x is notEmpty
-  //    thread.y is notEmpty
-  //    thread.z.length() as "password:length" should be > 5
-  //  }
+  implicit val postValidation = validator[Post] { post =>
+    post.content as "content" is notEmpty
+    post.email as "email" is notEmpty
+    post.email.length() as "email:length" should be > 5
+    post.pseudonym as "pseudonym" is notEmpty
+  }
 
   implicit val threadFormat = jsonFormat2(Thread.apply)
   implicit val postFormat = jsonFormat6(Post.apply)

@@ -92,6 +92,9 @@ object Post {
   val posts: TableQuery[Posts] = TableQuery[Posts]
 }
 
+/**
+ *  Domain model helper for new thread
+ */
 case class NewThread(
   threadId: Option[Long] = None,
   subject: String,

@@ -43,6 +43,7 @@ trait DatabaseService extends ConfigHelper {
   db.createSession()
 
   val ddl = threads.schema ++ posts.schema
+
   implicit def secretId: String = UUID.randomUUID.toString()
 
   val initSetup = {
