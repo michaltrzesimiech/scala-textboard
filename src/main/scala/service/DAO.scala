@@ -52,15 +52,26 @@ object DAO extends TableQuery(new Threads(_)) with DatabaseService with DaoHelpe
     sortedThreads.drop(offset).take(limit).result.statements
   }
 
-  def justListAllThreads = { threads.result }
+  def justListAllThreads = { exec(threads.result) }
+
+  implicit val lastId: Option[Long] = {
+    val ids = threads.map(_.threadId).result
+    exec(for (id <- ids) yield Some(id.last.toLong) /* + 1*/ )
+  }
 
   def createThread(t: Thread) = {
-    exec(threads += Thread(None, t.subject))
+    exec(threads += Thread(t.threadId, t.subject))
     // ???   db.run(this returning this.map(_.threadId) into ((acc, threadId) => acc.copy(threadId = Some(threadId))) += thread)
   }
 
-  def createPost(threadId: Option[Long], pseudonym: String, email: String, content: String) = {
-    exec(posts += Post(None, threadId, secretId, pseudonym, email, content))
+  def createNewThread(nt: NewThread) = {
+    exec(threads += Thread(None, nt.subject))
+    exec(posts += Post(None, lastId, secretId, nt.pseudonym, nt.email, nt.content))
+    // ^== exec(posts += Post(None, Some(lastId), secretId, pseudonym, email, content))
+  }
+
+  def createPost(threadId: Option[Long], p: Post) = {
+    exec(posts += Post(None, p.threadId, secretId, p.pseudonym, p.email, p.content))
   }
 
   def openThread(threadId: Long) = {

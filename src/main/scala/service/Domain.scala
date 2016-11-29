@@ -63,7 +63,6 @@ final class Posts(tag: Tag) extends Table[Post](tag, "POSTS") {
  * Domain model for Thread
  */
 case class Thread(
-  /** Auto-incremented columns are automatically ignored. */
   threadId: Option[Long] = None,
   subject: String)
 
@@ -73,6 +72,14 @@ case class Thread(
 case class Post(
   postId: Option[Long] = None,
   threadId: Option[Long],
+  secretId: String,
+  pseudonym: String,
+  email: String,
+  content: String)
+
+case class NewThread(
+  postId: Option[Long] = None,
+  subject: String,
   secretId: String,
   pseudonym: String,
   email: String,
@@ -91,3 +98,5 @@ object Post {
    */
   val posts: TableQuery[Posts] = TableQuery[Posts]
 }
+
+object NewThread

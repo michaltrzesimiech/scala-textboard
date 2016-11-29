@@ -39,11 +39,11 @@ object Service extends TextboardJsonProtocol with SprayJsonSupport {
   /**
    * Returns the routes defined for endpoints:
    * 1. PUT			/thread/:thread_id/posts/:post_id?secret_id=x
-   * x2. DELETE	/thread/:thread_id/posts/:post_id?secret_id=x
-   * x3. GET			/thread/:thread_id/posts
-   * v4. POST		/thread/:thread_id/posts
-   * x5. GET			/threads?limit=x&offset=x
-   * v6. POST		/thread
+   * 2. DELETE	/thread/:thread_id/posts/:post_id?secret_id=x
+   * v3. GET		/thread/:thread_id/posts
+   * 4. POST		/thread/:thread_id/posts
+   * v5. GET		/threads?limit=x&offset=x
+   * 6. POST		/thread
    *
    * @param system The implicit system to use for building routes
    * @param ec The implicit execution context to use for routes
@@ -70,39 +70,36 @@ object Service extends TextboardJsonProtocol with SprayJsonSupport {
     } ~
       path("thread" / IntNumber / "posts") { threadId =>
         get /** all posts in specific thread - 3 */ {
-          val formattedId = threadId.toLong
-          val futOpenThread = (master ? OpenThread(formattedId)).mapTo[List[Post] /*ToResponseMarshallable*/ ]
-          complete(futOpenThread)
+          complete(DAO.openThread(threadId.toLong).toJson)
         } ~
           post /** reply to specific thread - 4 */ {
             entity(as[Post]) { post =>
-              (master ? CreatePost(Some(threadId.toLong),
-                post.pseudonym,
-                post.email,
-                post.content)).mapTo[Post]
+              (master ? CreatePost(DAO.lastId, post)).mapTo[Post]
               complete(StatusCodes.Created)
             }
           }
       } ~
       path("threads") {
         get /** all threads - 5 */ {
-          val futListAllThreads = (master ? ListAllThreads(10, 10)).mapTo[Seq[Thread]]
-          complete(futListAllThreads)
+          complete(DAO.justListAllThreads.toJson)
         }
       } ~
       post /** new thread - 6 */ {
-        entity(as[Thread]) { thread =>
-          (master ? CreateThread(thread)).mapTo[Thread]
-          complete(Future.successful(StatusCodes.Created))
+        entity(as[NewThread]) { thread =>
+          (master ? CreateNewThread(thread)).mapTo[NewThread]
+          complete(StatusCodes.Created)
+          // complete((master ? CreateNewThread(thread.subject, thread.pseudonym, thread.email, thread.content)).mapTo[NewThread])
         }
       }
   }
 }
 
-/** TODO 1:
- *  X. Secret verification to check
- *  X. Add basic checks for fail
- *  X. Add indexes
- *  X. Add validation
- *  X. Add pagination
- */
+/** TODO: deliver bare minimum
+*  1. Make all routes work
+*  1a. with validation
+*  2a. with verification of secret ID
+*
+*  X. Add basic routes for failures
+*  X. Add pagination
+*  X. Add indexes
+*/

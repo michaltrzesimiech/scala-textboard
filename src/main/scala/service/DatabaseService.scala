@@ -63,6 +63,6 @@ trait DatabaseService extends ConfigHelper {
         Post(None, 2, secretId, "Agent C", "author@troll.lol", "COMMENT")))
   }
 
-  val futureInitialSetup: Future[Unit] = db.run(initSetup)
+  //  val futureInitialSetup: Future[Unit] = db.run(initSetup)
 
 }
