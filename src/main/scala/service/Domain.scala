@@ -85,6 +85,9 @@ case class NewThread(
   email: String,
   content: String)
 
+case class NewContent(
+  content: String)
+
 object Thread {
   /**
    *  Query interface for the Threads table
