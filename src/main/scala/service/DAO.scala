@@ -41,8 +41,10 @@ trait DaoHelpers extends DatabaseService {
    * Needed for creation of new thread along with accompanying post
    */
   def lastId: Option[Long] = {
-    val threadIds = threads.map(_.threadId).result
-    exec(for (id <- threadIds) yield Some(id.last.toLong))
+    val threadIds = exec(threads.map(_.threadId).result)
+    Some(threadIds.max.toLong)
+
+    // exec(for (id <- threadIds) yield Some(id.last.toLong))
   }
 }
 
@@ -71,30 +73,37 @@ object DAO extends TableQuery(new Threads(_)) with DatabaseService with DaoHelpe
   }
 
   def editPost(secret: String, threadId: Long, postId: Long, c: NewContent) = {
-    val postsContent = posts.filter(x => x.threadId === threadId && x.id === postId).map(_.content)
-    secretOk(Option(postId), secret) match {
-      case true  => exec(postsContent.update(c.content))
-      case false => StatusCodes.Forbidden
-    }
-    // if (secretOk(p.postId, secret)) exec(postsContent.update(p.content)) else StatusCodes.Forbidden
     /**
-     * def editPost(secret: String, p: Post) = {
-     * val postsContent = posts.filter(x => x.threadId === p.threadId && x.id === p.postId).map(_.content)
-     * secretOk(p.postId, secret) match {
-     * case true => exec(postsContent.update(p.content))
+     * TODO: Fix verification of secret ID:
+     *
+     * secretOk(Option(postId), secret) match {
+     * case true  => exec(postsContent.update(c.content))
      * case false => StatusCodes.Forbidden
      * }
-     * // if (secretOk(p.postId, secret)) exec(postsContent.update(p.content)) else StatusCodes.Forbidden
-     * }
+     *
+     * OR
+     *
+     * if (secretOk(p.postId, secret)) exec(postsContent.update(p.content)) else StatusCodes.Forbidden
      */
+
+    val postsContent = posts.filter(x => x.threadId === threadId && x.id === postId).map(_.content)
+    exec(postsContent.update(c.content))
   }
 
   def deletePost(secret: String, postId: Option[Long]) = {
-    secretOk(postId, secret) match {
-      case true  => exec(posts.filter(_.id === postId).delete)
-      case false => StatusCodes.Forbidden
-    }
-    // if (secretOk(postId, secret)) exec(posts.filter(_.id === postId).delete) else StatusCodes.Forbidden
+    exec(posts.filter(_.id === postId).delete)
+    /**
+     * TODO: Fix verification of secret ID:
+     *
+     * secretOk(postId, secret) match {
+     * case true  => exec(posts.filter(_.id === postId).delete)
+     * case false => StatusCodes.Forbidden
+     * }
+     *
+     * OR
+     *
+     * if (secretOk(postId, secret)) exec(posts.filter(_.id === postId).delete) else StatusCodes.Forbidden
+     */
   }
 
   /**

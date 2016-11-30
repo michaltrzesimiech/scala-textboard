@@ -38,8 +38,8 @@ object Service extends TextboardJsonProtocol with SprayJsonSupport {
 
   /**
    * Returns the routes defined for endpoints:
-   * x1. PUT			/thread/:thread_id/posts/:post_id?secret=x
-   * x2. DELETE		/thread/:thread_id/posts/:post_id?secret=x
+   * v1. PUT			/thread/:thread_id/posts/:post_id?secret=x
+   * v2. DELETE		/thread/:thread_id/posts/:post_id?secret=x
    * v3. GET			/thread/:thread_id/posts
    * v4. POST			/thread/:thread_id/posts
    * v5. GET			/threads
@@ -57,17 +57,17 @@ object Service extends TextboardJsonProtocol with SprayJsonSupport {
       parameter('secret.as[String]) { secret =>
         put /** edit upon existing post in thread - 1 */ {
           entity(as[NewContent]) { newContent =>
-            (master ? EditContent(secret, threadId, postId, newContent))
+            DAO.editPost(secret, threadId, postId, newContent)
+            // (master ? EditContent(secret, threadId, postId, newContent))
             log.info(s"Editing post $postId in thread $threadId with secret ${secret} handled OK")
             complete(StatusCodes.OK)
           }
         } ~
-          /** TODO: FIX */
           delete /** post in thread - 2 */ {
-            (master ? DeletePost(secret, Some(postId)))
+            DAO.deletePost(secret, Some(postId))
+            // (master ? DeletePost(secret, Some(postId)))
             log.info(s"Deleting post $postId in thread $threadId with secret ${secret} handled OK")
             complete(StatusCodes.OK)
-
           }
       }
     } ~
@@ -103,8 +103,8 @@ object Service extends TextboardJsonProtocol with SprayJsonSupport {
 
 /** 
  * TODO: 
- * t1. Make all routes work
- * t= with validation
- * t= with verification of secret ID, return secret while post is created
- * t= with pagination
+ * 1. Make all routes work
+ * = with validation
+ * = with verification of secret ID, return secret while post is created
+ * = with custom pagination
  */
