@@ -1,17 +1,14 @@
 package main.scala.textboard
 
-import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.{ HttpMethods, StatusCodes }
 import java.util.UUID
-import scala.concurrent.{ ExecutionContextExecutor, Future, Await }
+import scala.concurrent.{ Await, ExecutionContextExecutor }
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.{ implicitConversions, postfixOps }
 import slick._
-import slick.util._
 import slick.driver.PostgresDriver.api._
-import slick.lifted.{ AbstractTable, Rep, ProvenShape, Case }
+import slick.util._
 
 trait DaoHelpers extends DatabaseService {
 
@@ -19,26 +16,31 @@ trait DaoHelpers extends DatabaseService {
   import Post._
 
   /**
-   * Execution helper
+   * Helps execution of db.run()
    */
   def exec[T](action: DBIO[T]): T =
     Await.result(db.run(action), 2 seconds)
 
   /**
-   * Implicitly turn Int to expected Option[Long]
+   * Implicitly turns Int into Option[Long]
    */
   implicit def intToOptionLong(id: Int) = Some(id.toLong)
 
   /**
-   * Verifies post secret (needed for updating or deleting posts)
+   * Generates and assigns secret ID
    */
-  implicit def secretOk(postId: Option[Long], secret: String): Boolean = {
+  implicit def secretId: String = UUID.randomUUID.toString()
+
+  /**
+   * Verifies post secret while updating or deleting posts
+   */
+  def secretOk(postId: Option[Long], secret: String): Boolean = {
     val postSecret: String = exec(posts.filter(_.id === postId).map(_.secretId).result).head.toString
     postSecret.toString == secret
   }
 
   /**
-   * Needed for creation of new thread along with accompanying post
+   * Finds last thread ID to add an accompanying post to new thread
    */
   def lastId: Option[Long] = {
     val threadIds = exec(threads.map(_.threadId).result)
@@ -51,10 +53,12 @@ object DAO extends TableQuery(new Threads(_)) with DatabaseService with DaoHelpe
   import Thread._
   import Post._
 
-  def listAllThreads = exec(threads.result)
-
   def listAllThreadsPaginated(offset: Int, limit: Int) = {
     exec(threads.sortBy(_.threadId.desc).drop(offset).take(limit).result)
+  }
+
+  def openThread(threadId: Long) = {
+    exec(posts.filter(_.threadId === threadId).result)
   }
 
   def createNewThread(nt: NewThread) = {
@@ -66,8 +70,6 @@ object DAO extends TableQuery(new Threads(_)) with DatabaseService with DaoHelpe
     exec(posts += Post(None, p.threadId, secretId, p.pseudonym, p.email, p.content))
   }
 
-  def openThread(threadId: Long) = { exec(posts.filter(_.threadId === threadId).result) }
-
   def editPost(threadId: Long, postId: Long, c: NewContent) = {
     val postsContent = posts.filter(x => x.threadId === threadId && x.id === postId).map(_.content)
     exec(postsContent.update(c.content))
@@ -76,13 +78,4 @@ object DAO extends TableQuery(new Threads(_)) with DatabaseService with DaoHelpe
   def deletePost(postId: Option[Long]) = {
     exec(posts.filter(_.id === postId).delete)
   }
-
-  /**
-   * NOT REQUIRED:
-   * def deleteThreadById(threadId: Long): Future[Int] = {
-   * db.run(posts.filter(_.threadId === threadId).delete)
-   * db.run(threads.filter(_.threadId === threadId).delete) }
-   */
 }
-
-

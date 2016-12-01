@@ -1,6 +1,5 @@
 package main.scala.textboard
 
-import java.util.UUID
 import scala.concurrent.{ ExecutionContextExecutor, Future, Await }
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -46,10 +45,6 @@ trait DatabaseService extends ConfigHelper {
   db.createSession()
 
   val ddl = threads.schema ++ posts.schema
-
-  /** TODO: Extract to validator service */
-
-  implicit def secretId: String = UUID.randomUUID.toString()
 
   val initSetup = {
     DBIO.seq(

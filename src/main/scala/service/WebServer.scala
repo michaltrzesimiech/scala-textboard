@@ -35,7 +35,7 @@ object WebServer extends App with DatabaseService {
 
   /**
    *  Binds routes to server, gracefully terminates DB and server when done
-   *  @params httpHost, httpPost configured in application.conf via ConfigHelper
+   *  @params httpHost, httpPost Configured in application.conf via ConfigHelper
    */
   val binding = Http().bindAndHandle(route, httpHost, httpPort)
   println(s"Server running. Press RETURN to stop.")
@@ -46,3 +46,13 @@ object WebServer extends App with DatabaseService {
     .flatMap(_.unbind())
     .onComplete(_ => system.terminate())
 }
+
+/**
+ * TODO: Clean up and finalize
+ * ? ensure proper display
+ * ? potentially restructure; domain to /domain/{a, b, c}
+ * ? extract /services/{validation, database}
+ * ? calibrate limit and offset, ? add display limits to opened thread
+ * ? automate DB initialization basd on predicate = schema exists
+ * ? add rule to new post: if thread has to exist for new posts
+*/
