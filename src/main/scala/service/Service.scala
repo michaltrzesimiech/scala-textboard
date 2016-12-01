@@ -2,53 +2,48 @@ package main.scala.textboard
 
 import akka.actor._
 import akka.actor.{ Actor, Props, ActorRef }
-import akka.http.scaladsl.client.RequestBuilding
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.{ HttpMethods, StatusCodes }
 import akka.http.scaladsl.server._
-import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.unmarshalling.{ Unmarshal, FromRequestUnmarshaller }
+import akka.http.scaladsl.server.Route
 import akka.stream.{ ActorMaterializer, Materializer }
-import akka.stream.scaladsl.{ Flow, Sink, Source }
 import akka.util.Timeout
-import java.util.UUID
 import scala.concurrent.{ ExecutionContext, ExecutionContextExecutor, Future }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.io._
-import scala.io.StdIn
 import scala.language.{ implicitConversions, postfixOps }
-import scala.util.{ Try, Success, Failure }
 import spray.json._
 
 object Service extends TextboardJsonProtocol with SprayJsonSupport with ConfigHelper {
 
   import akka.pattern.ask
-  import DbActor._
   import WebServer._
   import DAO._
+  import DbActor._
 
+  /**
+   * Invokes ActorRef to run DB operations for method POST
+   */
   val master: ActorRef = system.actorOf(Props[DbActor], name = "master")
   implicit val timeout: Timeout = Timeout(5 seconds)
 
   /**
-   * Returns the routes defined for endpoints:
-   * 
+   * Returns Route for:
    * 1. PUT				/thread/:thread_id/posts/:post_id?secret=x
    * 2. DELETE		/thread/:thread_id/posts/:post_id?secret=x
    * 3. GET				/thread/:thread_id/posts
    * 4. POST			/thread/:thread_id/posts
    * 5. GET				/threads?limit=x&offset=x
    * 6. GET				/threads
-   * 7. POST			/thread
+   * 7. POST			/threads
    *
-   * @param system The implicit system to use for building routes
-   * @param ec The implicit execution context to use for routes
-   * @param mater The implicit materializer to use for routes
+   * @param system 	The implicit system to use for building routes
+   * @param ec 			The	implicit execution context to use for routes
+   * @param mater 	The implicit materializer to use for routes
    */
   def route(implicit system: ActorSystem,
             ec: ExecutionContext,
@@ -98,5 +93,3 @@ object Service extends TextboardJsonProtocol with SprayJsonSupport with ConfigHe
       }
   }
 }
-
-
