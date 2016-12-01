@@ -12,22 +12,21 @@ object DbActor {
   case class OpenThread(threadId: Long)
   case class CreateNewThread(thread: NewThread)
   case class CreatePost(threadId: Option[Long], post: Post)
-  //  case class EditPost(secret: String, post: Post)
-  case class EditContent(secret: String, threadId: Long, postId: Long, content: NewContent)
-  case class DeletePost(secret: String, postId: Option[Long])
+  case class EditPost(threadId: Long, postId: Long, content: NewContent)
+  case class DeletePost(postId: Option[Long])
 }
 
 class DbActor extends Actor {
   import DbActor._
+  import DAO._
 
   def receive = {
-    case ListAllThreads                                 => DAO.listAllThreads
-    case ListAllThreadsPaginated(limit, offset)         => DAO.listAllThreadsPaginated(limit, offset)
-    case OpenThread(threadId)                           => DAO.openThread(threadId)
-    case CreateNewThread(thread)                        => DAO.createNewThread(thread)
-    case CreatePost(threadId, post)                     => DAO.createPost(threadId, post)
-    // case EditPost(secret, post) => DAO.editPost(secret, post)
-    case EditContent(secret, threadId, postId, content) => DAO.editPost(secret, threadId, postId, content)
-    case DeletePost(secret, postId)                     => DAO.deletePost(secret, postId)
+    case ListAllThreads                         => listAllThreads
+    case ListAllThreadsPaginated(limit, offset) => listAllThreadsPaginated(limit, offset)
+    case OpenThread(threadId)                   => openThread(threadId)
+    case CreateNewThread(thread)                => createNewThread(thread)
+    case CreatePost(threadId, post)             => createPost(threadId, post)
+    case EditPost(threadId, postId, content)    => editPost(threadId, postId, content)
+    case DeletePost(postId)                     => deletePost(postId)
   }
 }

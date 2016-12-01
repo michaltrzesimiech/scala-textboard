@@ -22,29 +22,29 @@ import scala.concurrent.duration._
 import scala.io._
 import scala.io.StdIn
 import scala.language.{ implicitConversions, postfixOps }
-//import scala.util.{ Success, Failure }
+import scala.util.{ Try, Success, Failure }
 import spray.json._
 
-object Service extends TextboardJsonProtocol with SprayJsonSupport {
+object Service extends TextboardJsonProtocol with SprayJsonSupport with ConfigHelper {
+
   import akka.pattern.ask
   import DbActor._
   import WebServer._
+  import DAO._
 
-  /**
-   *  Invokes DB Actor, with mandatory Timeout parameter
-   */
-  implicit val timeout: Timeout = Timeout(5 seconds)
   val master: ActorRef = system.actorOf(Props[DbActor], name = "master")
+  implicit val timeout: Timeout = Timeout(5 seconds)
 
   /**
    * Returns the routes defined for endpoints:
-   * v1. PUT			/thread/:thread_id/posts/:post_id?secret=x
-   * v2. DELETE		/thread/:thread_id/posts/:post_id?secret=x
-   * v3. GET			/thread/:thread_id/posts
-   * v4. POST			/thread/:thread_id/posts
-   * v5. GET			/threads
-   * x6. GET			/threads?limit=x&offset=x
-   * v7. POST			/thread
+   * 
+   * 1. PUT				/thread/:thread_id/posts/:post_id?secret=x
+   * 2. DELETE		/thread/:thread_id/posts/:post_id?secret=x
+   * 3. GET				/thread/:thread_id/posts
+   * 4. POST			/thread/:thread_id/posts
+   * 5. GET				/threads?limit=x&offset=x
+   * 6. GET				/threads
+   * 7. POST			/thread
    *
    * @param system The implicit system to use for building routes
    * @param ec The implicit execution context to use for routes
@@ -55,56 +55,48 @@ object Service extends TextboardJsonProtocol with SprayJsonSupport {
             mater: Materializer): Route = {
     path("thread" / LongNumber / "posts" / LongNumber) { (threadId, postId) =>
       parameter('secret.as[String]) { secret =>
-        put /** edit upon existing post in thread - 1 */ {
-          entity(as[NewContent]) { newContent =>
-            DAO.editPost(secret, threadId, postId, newContent)
-            // (master ? EditContent(secret, threadId, postId, newContent))
-            log.info(s"Editing post $postId in thread $threadId with secret ${secret} handled OK")
-            complete(StatusCodes.OK)
-          }
-        } ~
-          delete /** post in thread - 2 */ {
-            DAO.deletePost(secret, Some(postId))
-            // (master ? DeletePost(secret, Some(postId)))
-            log.info(s"Deleting post $postId in thread $threadId with secret ${secret} handled OK")
-            complete(StatusCodes.OK)
-          }
+        authorize(secretOk(Some(postId), secret)) {
+          put /** upon post given secret is right - 1 */ {
+            entity(as[NewContent]) { content =>
+              editPost(threadId, postId, content)
+              complete(StatusCodes.OK)
+            }
+          } ~
+            delete /** post given secret is right - 2 */ {
+              deletePost(Some(postId))
+              complete(StatusCodes.OK)
+            }
+        }
       }
     } ~
       path("thread" / LongNumber / "posts") { threadId =>
         get /** all posts in specific thread - 3 */ {
-          complete(DAO.openThread(threadId).toJson)
+          complete(openThread(threadId).toJson)
         } ~
           post /** reply to specific thread - 4 */ {
             entity(as[Post]) { post =>
-              (master ? CreatePost(DAO.lastId, post)).mapTo[Post]
+              (master ? CreatePost(lastId, post)).mapTo[Post]
               complete(StatusCodes.Created)
             }
           }
       } ~
       path("threads") {
-        get /** all threads with fixed max limit and offset - 5 */ {
-          complete(DAO.listAllThreadsPaginated(config.getInt("pagination.limit"), config.getInt("pagination.offset")).toJson)
-        } ~
+        get /** all threads with flexible limit and offset - 5 */ {
           parameters('limit.as[Int], 'offset.as[Int]) { (limit, offset) =>
-            get /** all threads with flexible limit and offset */ {
-              complete(DAO.listAllThreadsPaginated(limit, offset).toJson)
+            complete(listAllThreadsPaginated(limit, offset).toJson)
+          }
+        } ~
+          get /** all threads with fixed limit and offset - 6 */ {
+            complete(listAllThreadsPaginated(dbLimit, dbOffset).toJson)
+          } ~
+          post /** new thread - 7 */ {
+            entity(as[NewThread]) { thread =>
+              (master ? CreateNewThread(thread)).mapTo[NewThread]
+              complete(StatusCodes.Created)
             }
           }
-      } ~
-      post /** new thread - 6 */ {
-        entity(as[NewThread]) { thread =>
-          (master ? CreateNewThread(thread)).mapTo[NewThread]
-          complete(StatusCodes.Created)
-        }
       }
   }
 }
 
-/** 
- * TODO: 
- * 1. Make all routes work
- * = with validation
- * = with verification of secret ID, return secret while post is created
- * = with custom pagination
- */
+

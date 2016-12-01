@@ -35,9 +35,12 @@ object WebServer extends App with DatabaseService {
 
   /**
    *  Binds routes to server, gracefully terminates DB and server when done
+   *  @params httpHost, httpPost configured in application.conf via ConfigHelper
    */
-  val binding = Http().bindAndHandle(route, config.getString("http.interface"), config.getInt("http.port"))
-  println(s"Server running. Press RETURN to stop."); StdIn.readLine()
+  val binding = Http().bindAndHandle(route, httpHost, httpPort)
+  println(s"Server running. Press RETURN to stop.")
+
+  StdIn.readLine()
   db.close
   binding
     .flatMap(_.unbind())

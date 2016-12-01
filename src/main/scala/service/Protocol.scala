@@ -3,7 +3,6 @@ package main.scala.textboard
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.GenericMarshallers //!
 import akka.http.scaladsl.marshalling.GenericMarshallers.futureMarshaller //!
-import com.wix.accord.dsl._
 import java.util.UUID
 import scala.concurrent.Future
 import spray.json._
@@ -35,18 +34,11 @@ trait TextboardJsonProtocol extends DefaultJsonProtocol with SprayJsonSupport {
   implicit val newThread = jsonFormat6(NewThread.apply)
   implicit val newContent = jsonFormat1(NewContent.apply)
 
-  /** TODO: Doesn't catch violation */
-  implicit val threadValidation = validator[NewThread] { thread =>
-    thread.subject as "subject" is notEmpty
-    thread.subject.length() as "subject" should be > 2
-  }
-  
-  /** TODO: Doesn't catch violation */
-  implicit val postValidation = validator[Post] { post =>
-    post.content as "content" is notEmpty
-    post.email as "email" is notEmpty
-    post.email.length() as "email:length" should be > 5
-    post.pseudonym as "pseudonym" is notEmpty
-  }
-
 }
+
+
+
+
+
+
+

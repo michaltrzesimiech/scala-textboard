@@ -24,6 +24,9 @@ trait ConfigHelper {
   implicit val jdbcUrl = dbConfig.getString("url")
   implicit val dbUser = dbConfig.getString("user")
   implicit val dbPassword = dbConfig.getString("password")
+
+  implicit val dbLimit = dbConfig.getInt("limit")
+  implicit val dbOffset = dbConfig.getInt("offset")
 }
 
 trait DatabaseService extends ConfigHelper {
@@ -43,6 +46,9 @@ trait DatabaseService extends ConfigHelper {
   db.createSession()
 
   val ddl = threads.schema ++ posts.schema
+
+  /** TODO: Extract to validator service */
+
   implicit def secretId: String = UUID.randomUUID.toString()
 
   val initSetup = {
@@ -63,6 +69,7 @@ trait DatabaseService extends ConfigHelper {
         Post(None, 2, secretId, "Agent C", "author@troll.lol", "COMMENT")))
   }
 
-  //  val futureInitialSetup: Future[Unit] = db.run(initSetup)
-
+  // val futureInitialSetup: Future[Unit] = db.run(initSetup)
 }
+
+

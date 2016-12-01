@@ -16,8 +16,7 @@ libraryDependencies ++=  Seq(
              "com.typesafe.slick"    %%    "slick"            	      			  % "3.1.1",
              "com.typesafe.slick"    %%    "slick-hikaricp"           			  % "3.1.1",
 			 "com.typesafe.slick" 	 % 	   "slick-testkit_2.11" 				  % "3.1.1",
-             "com.typesafe.akka"     %%    "akka-actor"                           % "2.4.12",
-             "com.wix" %% "accord-core" % "0.6"
+             "com.typesafe.akka"     %%    "akka-actor"                           % "2.4.12"
 )
 
 fork in run := true

@@ -32,8 +32,8 @@ trait DaoHelpers extends DatabaseService {
   /**
    * Verifies post secret (needed for updating or deleting posts)
    */
-  def secretOk(postId: Option[Long], secret: String): Boolean = {
-    val postSecret = exec(posts.filter(_.id === postId).map(_.secretId).result)
+  implicit def secretOk(postId: Option[Long], secret: String): Boolean = {
+    val postSecret: String = exec(posts.filter(_.id === postId).map(_.secretId).result).head.toString
     postSecret.toString == secret
   }
 
@@ -43,8 +43,6 @@ trait DaoHelpers extends DatabaseService {
   def lastId: Option[Long] = {
     val threadIds = exec(threads.map(_.threadId).result)
     Some(threadIds.max.toLong)
-
-    // exec(for (id <- threadIds) yield Some(id.last.toLong))
   }
 }
 
@@ -68,42 +66,15 @@ object DAO extends TableQuery(new Threads(_)) with DatabaseService with DaoHelpe
     exec(posts += Post(None, p.threadId, secretId, p.pseudonym, p.email, p.content))
   }
 
-  def openThread(threadId: Long) = {
-    exec(posts.filter(_.threadId === threadId).result)
-  }
+  def openThread(threadId: Long) = { exec(posts.filter(_.threadId === threadId).result) }
 
-  def editPost(secret: String, threadId: Long, postId: Long, c: NewContent) = {
-    /**
-     * TODO: Fix verification of secret ID:
-     *
-     * secretOk(Option(postId), secret) match {
-     * case true  => exec(postsContent.update(c.content))
-     * case false => StatusCodes.Forbidden
-     * }
-     *
-     * OR
-     *
-     * if (secretOk(p.postId, secret)) exec(postsContent.update(p.content)) else StatusCodes.Forbidden
-     */
-
+  def editPost(threadId: Long, postId: Long, c: NewContent) = {
     val postsContent = posts.filter(x => x.threadId === threadId && x.id === postId).map(_.content)
     exec(postsContent.update(c.content))
   }
 
-  def deletePost(secret: String, postId: Option[Long]) = {
+  def deletePost(postId: Option[Long]) = {
     exec(posts.filter(_.id === postId).delete)
-    /**
-     * TODO: Fix verification of secret ID:
-     *
-     * secretOk(postId, secret) match {
-     * case true  => exec(posts.filter(_.id === postId).delete)
-     * case false => StatusCodes.Forbidden
-     * }
-     *
-     * OR
-     *
-     * if (secretOk(postId, secret)) exec(posts.filter(_.id === postId).delete) else StatusCodes.Forbidden
-     */
   }
 
   /**
@@ -111,11 +82,7 @@ object DAO extends TableQuery(new Threads(_)) with DatabaseService with DaoHelpe
    * def deleteThreadById(threadId: Long): Future[Int] = {
    * db.run(posts.filter(_.threadId === threadId).delete)
    * db.run(threads.filter(_.threadId === threadId).delete) }
-   *
-   * def findThreadById(threadId: Long): Future[Option[Thread]] = {
-   * db.run(this.filter(_.threadId === threadId).result).map(_.headOption) }
-   *
-   * def findPostById(postId: Long): Future[Option[Post]] = {
-   * db.run(posts.filter(_.id === postId).result).map(_.headOption) }
    */
 }
+
+
