@@ -1,67 +1,66 @@
-package main.scala.textboard
+package textboard
 
-import java.util.UUID
-import scala.concurrent.{ ExecutionContextExecutor, Future, Await }
+import com.typesafe.config.ConfigFactory
+import com.zaxxer.hikari.{ HikariConfig, HikariDataSource }
+import textboard.utils._
 import scala.concurrent.duration._
+import scala.concurrent.{ ExecutionContextExecutor, Future, Await }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.{ implicitConversions, postfixOps }
 import slick._
-import slick.util._
 import slick.driver.PostgresDriver.api._
+import slick.jdbc.meta.MTable
 import slick.lifted.{ AbstractTable, Rep, ProvenShape, Case }
-import com.zaxxer.hikari.{ HikariConfig, HikariDataSource }
-import com.typesafe.config.ConfigFactory
+import slick.util._
 
-trait ConfigHelper {
-  private val config = ConfigFactory.load()
+trait DatabaseService extends ConfigHelper with DateTimeHelper {
 
-  private val httpConfig = config.getConfig("http")
-  private val dbConfig = config.getConfig("database")
-
-  implicit val httpHost = httpConfig.getString("interface")
-  implicit val httpPort = httpConfig.getInt("port")
-
-  implicit val jdbcUrl = dbConfig.getString("url")
-  implicit val dbUser = dbConfig.getString("user")
-  implicit val dbPassword = dbConfig.getString("password")
-}
-
-trait DatabaseService extends ConfigHelper {
-  import Thread._
-  import Post._
+  import textboard.domain._
   import DAO._
-
+  
   private val hikariConfig = new HikariConfig()
   hikariConfig.setJdbcUrl(jdbcUrl)
   hikariConfig.setUsername(dbUser)
   hikariConfig.setPassword(dbPassword)
 
   private val dataSource = new HikariDataSource(hikariConfig)
-
   val driver = slick.driver.PostgresDriver
   val db = Database.forDataSource(dataSource)
+
   db.createSession()
 
-  val ddl = threads.schema ++ posts.schema
-
-  implicit def secretId: String = UUID.randomUUID.toString()
-
-  val initSetup = {
+  lazy val ddl = threads.schema ++ posts.schema
+  lazy val initSetup = {
     DBIO.seq(
       /**
-       *  Create tables, including primary and foreign keys
+       *  Creates tables, including primary and foreign keys
        */
       ddl.create,
 
       /**
-       *  Insert dummy threads and posts
+       *  Inserts dummy threads and posts
        */
       threads += Thread(None, "SUBJECT A"),
       threads += Thread(None, "SUBJECT B"),
       posts ++= Seq(
-        Post(None, 1, secretId, "Agent A", "agent@one.com", "COMMENT"),
-        Post(None, 1, secretId, "Agent B", "author@other.com", "COMMENT"),
-        Post(None, 2, secretId, "Agent C", "author@troll.lol", "COMMENT")))
+        Post(None, 1, secretId, "Agent A", "agent@one.com", "COMMENT", now),
+        Post(None, 1, secretId, "Agent B", "author@other.com", "COMMENT", now),
+        Post(None, 2, secretId, "Agent C", "author@troll.lol", "COMMENT", now)))
   }
-  //  val futureInitialSetup: Future[Unit] = db.run(initSetup)
+
+  /**
+   *  Run initial setup if no prior setup is found
+   *  TODO: compare val futureInitialSetup: Future[Unit] = db.run(initSetup)
+   */
+  try {
+    def createTablesIfNotInTables(tables: Vector[MTable]) = {
+      if (!tables.exists(_.name.name == threads.baseTableRow.tableName)) {
+        db.run(initSetup)
+      } else {
+        Future()
+      }
+    }
+    val createTablesIfNone = db.run(MTable.getTables).flatMap(createTablesIfNotInTables)
+    Await.result(createTablesIfNone, Duration.Inf)
+  } finally db.close
 }

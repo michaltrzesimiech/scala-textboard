@@ -1,4 +1,4 @@
-package main.scala.textboard
+package textboard
 
 import akka.actor.ActorSystem
 import akka.event.{ LoggingAdapter, Logging }
@@ -27,6 +27,7 @@ object WebServer extends App with DatabaseService {
 
   /**
    * Creates tables, then fills them with dummy data
+   * TODO: Potentially eliminate
    */
   //  Await.result(db.run(initSetup), Duration.Inf)
 
@@ -35,11 +36,15 @@ object WebServer extends App with DatabaseService {
 
   /**
    *  Binds routes to server, gracefully terminates DB and server when done
+   *  @params httpHost, httpPost Configured in application.conf via ConfigHelper
    */
-  val binding = Http().bindAndHandle(route, config.getString("http.interface"), config.getInt("http.port"))
-  println(s"Server running. Press RETURN to stop."); StdIn.readLine()
+  val binding = Http().bindAndHandle(route, httpHost, httpPort)
+  println(s"Server running. Press RETURN to stop.")
+
+  StdIn.readLine()
   db.close
   binding
     .flatMap(_.unbind())
     .onComplete(_ => system.terminate())
 }
+

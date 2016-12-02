@@ -1,112 +1,90 @@
-package main.scala.textboard
+package textboard
 
-import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.{ HttpMethods, StatusCodes }
+import textboard.utils._
+import textboard.domain._
 import java.util.UUID
-import scala.concurrent.{ ExecutionContextExecutor, Future, Await }
+import scala.concurrent.{ Await, ExecutionContextExecutor }
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.{ implicitConversions, postfixOps }
 import slick._
-import slick.util._
 import slick.driver.PostgresDriver.api._
-import slick.lifted.{ AbstractTable, Rep, ProvenShape, Case }
-import com.wix.accord.dsl._
+import slick.util._
 
-trait DaoHelpers extends DatabaseService {
-  /**
-   * Execution helper #1: await database action
-   */
-  def exec[T](action: DBIO[T]): T =
-    Await.result(db.run(action), 3 seconds)
-
-  /**
-   * Execution helper #2: implicitly turn Int to expected Option[Long]
-   */
-  implicit def intToOptionLong(id: Int) = Some(id.toLong)
-}
+import org.joda.time.DateTime
+import org.joda.time.DateTimeZone.UTC
+import com.github.tototoshi.slick.H2JodaSupport._
+import org.joda.time.DateTime
 
 object DAO extends TableQuery(new Threads(_)) with DatabaseService with DaoHelpers {
 
-  import Thread._
-  import Post._
-  import WebServer._
+  import textboard.domain._
+  import textboard.utils._
 
-  /**
-   *  Verify post secret
-   */
-  def secretOk(postId: Long, secret: String): Boolean = {
-    val postSecret = posts.filter(_.id === postId).map(_.secretId)
-    val postSecretResult = exec(postSecret.result)
-    postSecretResult.head.toString == secret
+  def listAllThreadsPaginated(limit: Int, offset: Int) = {
+
+    /** TODO: Sort threads by last answered (foreign key?) */
+    val bareSortedPosts = posts.sortBy(_.timestamp.desc)
+
+    val join = for {
+      (t, p) <- threads join posts
+    } yield ((t.threadId -> t.subject), (p.timestamp))
+    val joinSorted = join.sortBy(_._2.desc)
+
+    exec(joinSorted.map(_._1).result)
+
+    // exec(threads.sortBy(_.threadId.desc).drop(limit).take(offset).result)
   }
 
-  def listAllThreads(offset: Int, limit: Int) = {
-    val sortedAndPaginated = threads.sortBy(_.threadId.desc).drop(offset).take(limit)
-    exec(sortedAndPaginated.to[Seq].result)
-
-    log.info(sortedAndPaginated.result.statements.toString)
+  def openThread(threadId: Long, limit: Int, offset: Int) = {
+    /** TODO: Check with requirements */
+    exec(posts.sortBy(_.id.asc).filter(_.threadId === threadId).drop(limit).take(offset).result)
   }
 
-  def justListAllThreads = {
-    exec(threads.to[Seq].result)
-
-    // def justListAllThreads = {
-    // val allThreads = threads.map(t => (t.threadId, t.subject))
-    // db.run(allThreads.to[Seq].result) }
+  def createNewThread(nt: NewThread) = {
+    exec(threads += Thread(None, nt.subject))
+    exec(posts += Post(None, lastId, secretId, nt.pseudonym, nt.email, nt.content, DateTime.now))
   }
 
-  def openThread(threadId: Long) = {
-    val postsByThreadId = posts.filter(_.threadId === threadId).sortBy(p => p.id.asc)
-    exec(postsByThreadId.to[Seq].result)
+  def createPost(threadId: Option[Long], p: Post) = {
+    exec(posts += Post(None, p.threadId, secretId, p.pseudonym, p.email, p.content, DateTime.now))
   }
 
-  def createNewThread(subject: String, pseudonym: String, email: String, content: String) = {
-    createThread(subject)
-    // ^== exec(threads += Thread(None, subject))
-
-    val ids = threads.map(_.threadId).result
-    val lastId: Long = exec(for (id <- ids) yield id.last.toLong /* + 1*/ )
-
-    createPost(Some(lastId), pseudonym, email, content)
-    // ^== exec(posts += Post(None, Some(lastId), secretId, pseudonym, email, content))
+  def editPost(threadId: Long, postId: Long, c: NewContent) = {
+    val postsContent = posts.filter(x => x.threadId === threadId && x.id === postId).map(_.content)
+    exec(postsContent.update(c.content))
   }
 
-  def createThread(subject: String) = {
-    exec(threads += Thread(None, subject))
-    // exec(this returning this.map(_.threadId) into ((acc, threadId) => acc.copy(threadId = Some(threadId))) += Thread(threadId, subject))
-  }
-
-  def createPost(threadId: Option[Long], pseudonym: String, email: String, content: String) = {
-    exec(posts += Post(None, threadId, secretId, pseudonym, email, content))
-  }
-
-  def editPost(postId: Long, secret: String, newContent: String) = {
-    val thisPostsContent = posts.filter(_.id === postId).map(_.content)
-    val updateContent = if (secretOk(postId, secret)) exec(thisPostsContent.update(newContent))
-    else StatusCodes.Forbidden
-  }
-
-  def deletePost(postId: Long, secret: String) = {
-    if (secretOk(postId, secret))
-      exec(posts.filter(_.id === postId).delete)
-    else StatusCodes.Forbidden
+  def deletePost(postId: Option[Long]) = {
+    exec(posts.filter(_.id === postId).delete)
   }
 
   /**
-   *  NOT REQUESTED OR NOT REQUIRED:
-   * def deleteThreadById(threadId: Long): Future[Int] = {
-   * db.run(posts.filter(_.threadId === threadId).delete)
-   * db.run(threads.filter(_.threadId === threadId).delete)
-   * }
-   *
-   * def findThreadById(threadId: Long): Future[Option[Thread]] = {
-   * db.run(this.filter(_.threadId === threadId).result).map(_.headOption)
-   * }
-   *
-   * def findPostById(postId: Long): Future[Option[Post]] = {
-   * db.run(posts.filter(_.id === postId).result).map(_.headOption)
-   * }
+   * Verifies post secret. Needed for updating or deleting posts.
    */
+  def secretOk(postId: Option[Long], secret: String): Boolean = {
+    val postSecret: String = exec(posts.filter(_.id === postId).map(_.secretId).result).head.toString
+    postSecret.toString == secret
+  }
 }
+
+/**
+ * TODO: Clean up and finalize
+ * t ensure proper display
+ * 
+ * v custom format for datetime, saving datetime to db, writing back out
+ * v mechanism to display secret on create
+ * v add display limits to opened thread
+ * v potentially restructure; domain to /domain/{a, b, c}
+ * v extract /services/{validation, database}
+ * v automate DB initialization based on predicate = schema exists
+ * v calibrate limit and offset
+ * 
+ * ? add rule to new post: if thread has to exist for new posts
+ * ? update sample jsons in /json
+ * ? clean up gitignores
+ * ? 	add "joda-time" % "joda-time" % "2.9.6", 
+ *   	"com.github.tototoshi" % "slick-joda-mapper_2.11" % "2.2.0",
+ * 		"org.joda" % "joda-convert" % "1.8.1"
+ */
