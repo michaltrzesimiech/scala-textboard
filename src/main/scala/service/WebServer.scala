@@ -27,11 +27,6 @@ object WebServer extends App with DatabaseService {
   implicit val ec: ExecutionContext = system.dispatcher
   implicit val mater: ActorMaterializer = ActorMaterializer()
 
-  /**
-   * Creates tables, then fills them with dummy data
-   */
-  //  Await.result(db.run(initSetup), Duration.Inf)
-
   val config: Config = ConfigFactory.load()
   val log: LoggingAdapter = Logging(system, getClass)
 
@@ -48,13 +43,3 @@ object WebServer extends App with DatabaseService {
     .flatMap(_.unbind())
     .onComplete(_ => system.terminate())
 }
-
-/**
- * TODO: Clean up and finalize
- * ? ensure proper display
- * ? potentially restructure; domain to /domain/{a, b, c}
- * ? extract /services/{validation, database}
- * ? calibrate limit and offset, ? add display limits to opened thread
- * ? automate DB initialization basd on predicate = schema exists
- * ? add rule to new post: if thread has to exist for new posts
-*/

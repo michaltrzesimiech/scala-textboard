@@ -12,36 +12,6 @@ import slick.util._
 import textboard.utils._
 import textboard.domain._
 
-//trait DaoHelpers extends DatabaseService {
-//
-//  import Thread._
-//  import Post._
-//
-//  /**
-//   * Helps execution of db.run()
-//   */
-//  def exec[T](action: DBIO[T]): T =
-//    Await.result(db.run(action), 2 seconds)
-//
-//  /**
-//   * Implicitly turns Int into Option[Long]
-//   */
-//  implicit def intToOptionLong(id: Int) = Some(id.toLong)
-//
-//  /**
-//   * Generates and assigns secret ID
-//   */
-//  implicit def secretId: String = UUID.randomUUID.toString()
-//
-//  /**
-//   * Finds last thread ID to add an accompanying post to new thread
-//   */
-//  def lastId: Option[Long] = {
-//    val threadIds = exec(threads.map(_.threadId).result)
-//    Some(threadIds.max.toLong)
-//  }
-//}
-
 object DAO extends TableQuery(new Threads(_)) with DatabaseService with DaoHelpers with ConfigHelper {
 
   import Thread._

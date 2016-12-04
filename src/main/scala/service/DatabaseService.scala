@@ -14,23 +14,6 @@ import slick.util._
 import textboard.domain._
 import textboard.utils._
 
-//trait ConfigHelper {
-//  private val config = ConfigFactory.load()
-//
-//  private val httpConfig = config.getConfig("http")
-//  private val dbConfig = config.getConfig("database")
-//
-//  implicit val httpHost = httpConfig.getString("interface")
-//  implicit val httpPort = httpConfig.getInt("port")
-//
-//  implicit val jdbcUrl = dbConfig.getString("url")
-//  implicit val dbUser = dbConfig.getString("user")
-//  implicit val dbPassword = dbConfig.getString("password")
-//
-//  implicit val dbLimit = dbConfig.getInt("limit")
-//  implicit val dbOffset = dbConfig.getInt("offset")
-//}
-
 trait DatabaseService extends ConfigHelper {
   import Thread._
   import Post._
