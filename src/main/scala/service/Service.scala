@@ -23,11 +23,13 @@ import spray.json._
 object Service extends TextboardJsonProtocol with SprayJsonSupport with ConfigHelper {
 
   import akka.pattern.ask
-  import textboard.domain._
-
-  import WebServer._
   import DAO._
   import DbActor._
+  import WebServer._
+
+  import textboard.domain._
+  import Thread._
+  import Post._
 
   /**
    * Invokes ActorRef to run DB operations for method POST
@@ -81,8 +83,7 @@ object Service extends TextboardJsonProtocol with SprayJsonSupport with ConfigHe
           post /** reply to specific thread - 5 */ {
             entity(as[Post]) { post =>
               (master ? CreatePost(lastId, post)).mapTo[Post]
-              /** TODO: test if secret id is displayed */
-              complete(StatusCodes.Created -> post.secretId)
+              complete(StatusCodes.Created)
             }
           }
       } ~
@@ -98,8 +99,7 @@ object Service extends TextboardJsonProtocol with SprayJsonSupport with ConfigHe
           post /** new thread - 8 */ {
             entity(as[NewThread]) { thread =>
               (master ? CreateNewThread(thread)).mapTo[NewThread]
-              /** TODO: test if secret id is displayed */
-              complete(StatusCodes.Created -> thread.secretId)
+              complete(StatusCodes.Created)
             }
           }
       }

@@ -20,21 +20,23 @@ import org.joda.time.DateTime
 object DAO extends TableQuery(new Threads(_)) with DatabaseService with DaoHelpers {
 
   import textboard.domain._
+  import Thread._
+  import Post._
   import textboard.utils._
 
   def listAllThreadsPaginated(limit: Int, offset: Int) = {
 
     /** TODO: Sort threads by last answered (foreign key?) */
-    val bareSortedPosts = posts.sortBy(_.timestamp.desc)
+//    val bareSortedPosts = posts.sortBy(_.timestamp.desc)
+//
+//    val join = for {
+//      (t, p) <- threads join posts
+//    } yield ((t.threadId -> t.subject), (p.timestamp))
+//    val joinSorted = join.sortBy(_._2.desc)
+//
+//    exec(joinSorted.map(_._1).result)
 
-    val join = for {
-      (t, p) <- threads join posts
-    } yield ((t.threadId -> t.subject), (p.timestamp))
-    val joinSorted = join.sortBy(_._2.desc)
-
-    exec(joinSorted.map(_._1).result)
-
-    // exec(threads.sortBy(_.threadId.desc).drop(limit).take(offset).result)
+     exec(threads.sortBy(_.threadId.desc).drop(limit).take(offset).result)
   }
 
   def openThread(threadId: Long, limit: Int, offset: Int) = {
@@ -44,6 +46,7 @@ object DAO extends TableQuery(new Threads(_)) with DatabaseService with DaoHelpe
 
   def createNewThread(nt: NewThread) = {
     exec(threads += Thread(None, nt.subject))
+    println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" + DateTime.now)
     exec(posts += Post(None, lastId, secretId, nt.pseudonym, nt.email, nt.content, DateTime.now))
   }
 
@@ -72,13 +75,14 @@ object DAO extends TableQuery(new Threads(_)) with DatabaseService with DaoHelpe
 /**
  * TODO: Clean up and finalize
  * t ensure proper display
+ * t change hardcoded limit to max limit
  * 
+ * x mechanism to display secret on create
+	
  * v custom format for datetime, saving datetime to db, writing back out
- * v mechanism to display secret on create
  * v add display limits to opened thread
  * v potentially restructure; domain to /domain/{a, b, c}
  * v extract /services/{validation, database}
- * v automate DB initialization based on predicate = schema exists
  * v calibrate limit and offset
  * 
  * ? add rule to new post: if thread has to exist for new posts
@@ -87,4 +91,11 @@ object DAO extends TableQuery(new Threads(_)) with DatabaseService with DaoHelpe
  * ? 	add "joda-time" % "joda-time" % "2.9.6", 
  *   	"com.github.tototoshi" % "slick-joda-mapper_2.11" % "2.2.0",
  * 		"org.joda" % "joda-convert" % "1.8.1"
+ */
+
+/** 
+ *  TESTED
+ * v automate DB initialization based on predicate = schema exists
+ *  
+ *  
  */

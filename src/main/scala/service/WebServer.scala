@@ -19,24 +19,17 @@ object WebServer extends App with DatabaseService {
   import Service._
 
   /**
-   * Invokes ActorSystem, materialises Actor and execution context
+   * Invokes ActorSystem, materializes Actor and execution context
    */
   implicit val system: ActorSystem = ActorSystem()
   implicit val ec: ExecutionContext = system.dispatcher
   implicit val mater: ActorMaterializer = ActorMaterializer()
-
-  /**
-   * Creates tables, then fills them with dummy data
-   * TODO: Potentially eliminate
-   */
-  //  Await.result(db.run(initSetup), Duration.Inf)
 
   val config: Config = ConfigFactory.load()
   val log: LoggingAdapter = Logging(system, getClass)
 
   /**
    *  Binds routes to server, gracefully terminates DB and server when done
-   *  @params httpHost, httpPost Configured in application.conf via ConfigHelper
    */
   val binding = Http().bindAndHandle(route, httpHost, httpPort)
   println(s"Server running. Press RETURN to stop.")

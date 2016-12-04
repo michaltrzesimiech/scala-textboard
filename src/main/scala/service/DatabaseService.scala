@@ -3,6 +3,7 @@ package textboard
 import com.typesafe.config.ConfigFactory
 import com.zaxxer.hikari.{ HikariConfig, HikariDataSource }
 import textboard.utils._
+import textboard.domain._
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContextExecutor, Future, Await }
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -15,9 +16,9 @@ import slick.util._
 
 trait DatabaseService extends ConfigHelper with DateTimeHelper {
 
-  import textboard.domain._
-  import DAO._
-  
+  import Thread._
+  import Post._
+
   private val hikariConfig = new HikariConfig()
   hikariConfig.setJdbcUrl(jdbcUrl)
   hikariConfig.setUsername(dbUser)
@@ -29,38 +30,20 @@ trait DatabaseService extends ConfigHelper with DateTimeHelper {
 
   db.createSession()
 
-  lazy val ddl = threads.schema ++ posts.schema
-  lazy val initSetup = {
-    DBIO.seq(
-      /**
-       *  Creates tables, including primary and foreign keys
-       */
-      ddl.create,
-
-      /**
-       *  Inserts dummy threads and posts
-       */
-      threads += Thread(None, "SUBJECT A"),
-      threads += Thread(None, "SUBJECT B"),
-      posts ++= Seq(
-        Post(None, 1, secretId, "Agent A", "agent@one.com", "COMMENT", now),
-        Post(None, 1, secretId, "Agent B", "author@other.com", "COMMENT", now),
-        Post(None, 2, secretId, "Agent C", "author@troll.lol", "COMMENT", now)))
-  }
+  val ddl = threads.schema ++ posts.schema
 
   /**
-   *  Run initial setup if no prior setup is found
-   *  TODO: compare val futureInitialSetup: Future[Unit] = db.run(initSetup)
+   *  Run schema setup if no setup is found
    */
   try {
-    def createTablesIfNotInTables(tables: Vector[MTable]) = {
+    def createTablesIfNone(tables: Vector[MTable]) = {
       if (!tables.exists(_.name.name == threads.baseTableRow.tableName)) {
-        db.run(initSetup)
+        db.run(ddl.create)
       } else {
-        Future()
+        Future.successful("Initial database setup already in place.")
       }
     }
-    val createTablesIfNone = db.run(MTable.getTables).flatMap(createTablesIfNotInTables)
-    Await.result(createTablesIfNone, Duration.Inf)
+    val initialSetup = db.run(MTable.getTables).flatMap(createTablesIfNone)
+    Await.result(initialSetup, Duration.Inf)
   } finally db.close
 }
