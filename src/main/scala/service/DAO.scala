@@ -9,52 +9,53 @@ import scala.language.{ implicitConversions, postfixOps }
 import slick._
 import slick.driver.PostgresDriver.api._
 import slick.util._
+import textboard.utils._
+import textboard.domain._
 
-trait DaoHelpers extends DatabaseService {
+//trait DaoHelpers extends DatabaseService {
+//
+//  import Thread._
+//  import Post._
+//
+//  /**
+//   * Helps execution of db.run()
+//   */
+//  def exec[T](action: DBIO[T]): T =
+//    Await.result(db.run(action), 2 seconds)
+//
+//  /**
+//   * Implicitly turns Int into Option[Long]
+//   */
+//  implicit def intToOptionLong(id: Int) = Some(id.toLong)
+//
+//  /**
+//   * Generates and assigns secret ID
+//   */
+//  implicit def secretId: String = UUID.randomUUID.toString()
+//
+//  /**
+//   * Finds last thread ID to add an accompanying post to new thread
+//   */
+//  def lastId: Option[Long] = {
+//    val threadIds = exec(threads.map(_.threadId).result)
+//    Some(threadIds.max.toLong)
+//  }
+//}
 
-  import Thread._
-  import Post._
-
-  /**
-   * Helps execution of db.run()
-   */
-  def exec[T](action: DBIO[T]): T =
-    Await.result(db.run(action), 2 seconds)
-
-  /**
-   * Implicitly turns Int into Option[Long]
-   */
-  implicit def intToOptionLong(id: Int) = Some(id.toLong)
-
-  /**
-   * Generates and assigns secret ID
-   */
-  implicit def secretId: String = UUID.randomUUID.toString()
-
-  /**
-   * Verifies post secret while updating or deleting posts
-   */
-  def secretOk(postId: Option[Long], secret: String): Boolean = {
-    val postSecret: String = exec(posts.filter(_.id === postId).map(_.secretId).result).head.toString
-    postSecret.toString == secret
-  }
-
-  /**
-   * Finds last thread ID to add an accompanying post to new thread
-   */
-  def lastId: Option[Long] = {
-    val threadIds = exec(threads.map(_.threadId).result)
-    Some(threadIds.max.toLong)
-  }
-}
-
-object DAO extends TableQuery(new Threads(_)) with DatabaseService with DaoHelpers {
+object DAO extends TableQuery(new Threads(_)) with DatabaseService with DaoHelpers with ConfigHelper {
 
   import Thread._
   import Post._
 
-  def listAllThreadsPaginated(offset: Int, limit: Int) = {
-    exec(threads.sortBy(_.threadId.desc).drop(offset).take(limit).result)
+  def listAllThreadsPaginated(limit: Int, offset: Int) = {
+    exec(threads.sortBy(_.threadId.desc).drop(dbOffset).take(dbLimit).result)
+
+    //    val bareSortedPosts = posts.sortBy(_.timestamp.desc)
+    //    val join = for {
+    //      (t, p) <- threads join posts
+    //    } yield ((t.threadId -> t.subject), (p.timestamp))
+    //    val joinSorted = join.sortBy(_._2.desc)
+    //    exec(joinSorted.map(_._1).result)
   }
 
   def openThread(threadId: Long) = {
@@ -68,6 +69,8 @@ object DAO extends TableQuery(new Threads(_)) with DatabaseService with DaoHelpe
 
   def createPost(threadId: Option[Long], p: Post) = {
     exec(posts += Post(None, p.threadId, secretId, p.pseudonym, p.email, p.content))
+    println(posts returning posts.map(_.secretId))
+    println(p.secretId)
   }
 
   def editPost(threadId: Long, postId: Long, c: NewContent) = {
@@ -78,4 +81,34 @@ object DAO extends TableQuery(new Threads(_)) with DatabaseService with DaoHelpe
   def deletePost(postId: Option[Long]) = {
     exec(posts.filter(_.id === postId).delete)
   }
+
+  /**
+   * Verifies post secret while updating or deleting posts
+   */
+  implicit def secretOk(postId: Option[Long], secret: String): Boolean = {
+    val postSecret: String = exec(posts.filter(_.id === postId).map(_.secretId).result).head.toString
+    postSecret.toString == secret
+  }
+
+  //  def displaySecret(postId: Option[Long]) = {
+  //    val secretAssigned = (posts.filter(_.id === postId).map(_.secretId))
+  //    println(secretAssigned)
+  //    exec(secretAssigned.result.head)
+  //  }
 }
+
+/** 
+ * = display secret on create
+ * = add supported timestamp format, add filtering threads by latest answered post
+ * = set max display limit defined from config
+ * == fix custom parameters for limit and offset
+ * == add custom pagination for posts
+ * == add display limits to opened thread
+ * 
+ * === update sample jsons in /json
+ * === clean up gitignores
+ * 
+ * ? potentially add rule to new post: if thread has to exist for new posts
+ * ? potentially restructure; domain to /domain/{a, b, c}
+ * ? extract /services/{validation, database}
+ */

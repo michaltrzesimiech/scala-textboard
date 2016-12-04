@@ -16,7 +16,11 @@ libraryDependencies ++=  Seq(
              "com.typesafe.slick"    %%    "slick"            	      			  % "3.1.1",
              "com.typesafe.slick"    %%    "slick-hikaricp"           			  % "3.1.1",
 			 "com.typesafe.slick" 	 % 	   "slick-testkit_2.11" 				  % "3.1.1",
-             "com.typesafe.akka"     %%    "akka-actor"                           % "2.4.12"
+             "com.typesafe.akka"     %%    "akka-actor"                           % "2.4.12",
+"joda-time" % "joda-time" % "2.9.6", 
+"com.github.tototoshi" % "slick-joda-mapper_2.11" % "2.2.0",
+"org.joda" % "joda-convert" % "1.8.1"
+
 )
 
 fork in run := true

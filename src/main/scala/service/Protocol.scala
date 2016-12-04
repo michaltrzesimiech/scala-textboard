@@ -5,6 +5,7 @@ import akka.http.scaladsl.marshalling.GenericMarshallers._
 import akka.http.scaladsl.marshalling.GenericMarshallers.futureMarshaller
 import spray.json._
 import spray.json.DefaultJsonProtocol
+import textboard.domain._
 
 /**
  * Root json protocol class for others to extend from.

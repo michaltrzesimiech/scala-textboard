@@ -12,6 +12,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.io._
 import scala.io.StdIn
 import scala.language.{ implicitConversions }
+import textboard.domain._
+import textboard.utils._
 
 object WebServer extends App with DatabaseService {
 

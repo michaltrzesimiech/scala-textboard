@@ -1,6 +1,7 @@
 package main.scala.textboard
 
 import akka.actor.Actor
+import textboard.domain._
 
 object DbActor {
   case class CreateNewThread(thread: NewThread)
