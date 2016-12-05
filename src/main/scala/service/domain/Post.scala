@@ -2,13 +2,14 @@ package textboard.domain
 
 import java.sql.Timestamp
 import main.scala.textboard._
-//import org.joda.time.DateTime
-//import org.joda.time.DateTimeZone.UTC
+import org.joda.time.DateTime
+import org.joda.time.DateTimeZone.UTC
 import scala.concurrent.ExecutionContext.Implicits.global
 import slick._
 import slick.util._
 import slick.driver.PostgresDriver.api._
 import slick.lifted.{ AbstractTable, Rep, ProvenShape }
+import textboard.domain._
 import textboard.utils._
 
 /**
@@ -21,16 +22,16 @@ final class Posts(tag: Tag) extends Table[Post](tag, "POSTS") /*with CustomColum
   def pseudonym = column[String]("PSEUDONYM")
   def email = column[String]("EMAIL")
   def content = column[String]("CONTENT")
-  /*def timestamp = column[DateTime]("TIMESTAMP")*/
-
+//  def created = column[DateTime]("CREATED", O.SqlType("TIMESTAMP"))
+  
   def * : ProvenShape[Post] = (
     id.?,
     threadId.?,
     secretId,
     pseudonym,
     email,
-    content /*,
-    timestamp*/ ) <> ((Post.apply _).tupled, Post.unapply)
+    content/*,
+    created*/) <> ((Post.apply _).tupled, Post.unapply)
 
   /**
    *  A reified foreign key relation that can be navigated to create a join
@@ -47,8 +48,8 @@ case class Post(
     secretId: String,
     pseudonym: String,
     email: String,
-    content: String /*,
-    timestamp: DateTime*/ ) {
+    content: String/*,
+    created: DateTime*/) {
   require((!pseudonym.isEmpty && pseudonym.length < 12), "Pseudonym must be between 0 and 12 characters")
   require(!email.isEmpty, "Email must not be empty")
   require((email.contains("@") && email.contains(".") && email.length < 30), "Email doesn't look properly formatted.")

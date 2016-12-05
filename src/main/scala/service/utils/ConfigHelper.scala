@@ -1,7 +1,7 @@
 package textboard.utils
 
-import com.zaxxer.hikari.{ HikariConfig, HikariDataSource }
 import com.typesafe.config.ConfigFactory
+import com.zaxxer.hikari.{ HikariConfig, HikariDataSource }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.{ implicitConversions, postfixOps }
 import slick._

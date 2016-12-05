@@ -1,7 +1,8 @@
 package main.scala.textboard
 
 import akka.http.scaladsl.model._
-import java.util.UUID
+import org.joda.time.DateTime
+import org.joda.time.DateTimeZone.UTC
 import scala.concurrent.{ Await, ExecutionContextExecutor }
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -17,30 +18,38 @@ object DAO extends TableQuery(new Threads(_)) with DatabaseService with DaoHelpe
   import Thread._
   import Post._
 
+  /** TODO: sort by last posted in, use timestamps and ordering */
   def listAllThreadsPaginated(limit: Int, offset: Int) = {
-    exec(threads.sortBy(_.threadId.desc).drop(dbOffset).take(dbLimit).result)
 
-    //    val bareSortedPosts = posts.sortBy(_.timestamp.desc)
-    //    val join = for {
-    //      (t, p) <- threads join posts
-    //    } yield ((t.threadId -> t.subject), (p.timestamp))
-    //    val joinSorted = join.sortBy(_._2.desc)
-    //    exec(joinSorted.map(_._1).result)
+    //    implicit def ordering: Ordering[DateTime] = Ordering.by(_.getMillis)
+    //    ordering.reverse
+
+    exec(threads.sortBy(_.threadId.desc).drop(limit).take(offset).result)
+
+    //    exec(threads.sortBy(_.threadId.asc).drop(dbOffset).take(dbLimit).result)
   }
 
-  def openThread(threadId: Long) = {
-    exec(posts.filter(_.threadId === threadId).result)
+  def openThread(threadId: Long, limit: Int, offset: Int) = {
+    val rawPosts = posts.filter(_.threadId === threadId)
+    val sortedPaginatedContents = rawPosts
+      .sortBy(_.id.asc).drop(limit).take(offset)
+      .map(x => (x.id, x.pseudonym, x.email, x.content))
+
+    exec(sortedPaginatedContents.result)
   }
 
+  /** TODO: apply working solution for returning secret */
   def createNewThread(nt: NewThread) = {
-    exec(threads += Thread(None, nt.subject))
-    exec(posts += Post(None, lastId, secretId, nt.pseudonym, nt.email, nt.content))
+    exec(threads += Thread(None, nt.subject /*, DateTime.now*/ ))
+    exec(posts += Post(None, lastId, secretId, nt.pseudonym, nt.email, nt.content /*, DateTime.now*/ ))
   }
 
+  /** TODO: test for returned token */
   def createPost(threadId: Option[Long], p: Post) = {
-    exec(posts += Post(None, p.threadId, secretId, p.pseudonym, p.email, p.content))
-    println(posts returning posts.map(_.secretId))
-    println(p.secretId)
+    exec((posts returning posts.map(_.secretId))
+      += Post(None, p.threadId, secretId, p.pseudonym, p.email, p.content /*, DateTime.now*/ ))
+
+    /*   add modification to thread lastmodified */
   }
 
   def editPost(threadId: Long, postId: Long, c: NewContent) = {
@@ -60,25 +69,13 @@ object DAO extends TableQuery(new Threads(_)) with DatabaseService with DaoHelpe
     postSecret.toString == secret
   }
 
-  //  def displaySecret(postId: Option[Long]) = {
-  //    val secretAssigned = (posts.filter(_.id === postId).map(_.secretId))
-  //    println(secretAssigned)
-  //    exec(secretAssigned.result.head)
-  //  }
+  implicit def maxLimit(limit: Int) = {
+    if (limit > dbLimit || limit <= 0) limit.map(x => dbLimit)
+  }
 }
 
 /** 
- * = display secret on create
- * = add supported timestamp format, add filtering threads by latest answered post
- * = set max display limit defined from config
- * == fix custom parameters for limit and offset
- * == add custom pagination for posts
- * == add display limits to opened thread
- * 
- * === update sample jsons in /json
- * === clean up gitignores
- * 
- * ? potentially add rule to new post: if thread has to exist for new posts
- * ? potentially restructure; domain to /domain/{a, b, c}
- * ? extract /services/{validation, database}
+ * = roll out supported timestamp format, add filtering threads by latest answered post
+ * ? update sample jsons in /json
+ * ? clean up gitignores
  */

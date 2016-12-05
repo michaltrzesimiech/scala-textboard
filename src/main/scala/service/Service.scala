@@ -22,6 +22,7 @@ import textboard.utils._
 
 object Service extends TextboardJsonProtocol with SprayJsonSupport with ConfigHelper {
 
+  import akka.http.scaladsl.unmarshalling.PredefinedFromEntityUnmarshallers
   import akka.pattern.ask
   import DAO._
   import DbActor._
@@ -42,10 +43,11 @@ object Service extends TextboardJsonProtocol with SprayJsonSupport with ConfigHe
    * 1. PUT				/thread/:thread_id/posts/:post_id?secret=x
    * 2. DELETE		/thread/:thread_id/posts/:post_id?secret=x
    * 3. GET				/thread/:thread_id/posts
-   * 4. POST			/thread/:thread_id/posts
-   * 5. GET				/threads?limit=x&offset=x
-   * 6. GET				/threads
-   * 7. POST			/threads
+   * 4. GET				/thread/:thread_id/posts?limit=x&offset=x
+   * 5. POST			/thread/:thread_id/posts
+   * 6. GET				/threads?limit=x&offset=x
+   * 7. GET				/threads
+   * 8. POST			/threads
    *
    * @param system 	The implicit system to use for building routes
    * @param ec 			The	implicit execution context to use for routes
@@ -71,26 +73,30 @@ object Service extends TextboardJsonProtocol with SprayJsonSupport with ConfigHe
       }
     } ~
       path("thread" / LongNumber / "posts") { threadId =>
-        get /** all posts in specific thread - 3 */ {
-          complete(openThread(threadId).toJson)
+        get /** all posts in specific thread, flexible limit and offset - 3 */ {
+          parameters('limit.as[Int], 'offset.as[Int]) { (limit, offset) =>
+            complete(openThread(threadId, limit, offset).toJson)
+          }
         } ~
-          post /** reply to specific thread - 4 */ {
+          get /** all posts in specific thread, fixed limit and offset - 4 */ {
+            complete(openThread(threadId, dbLimit, dbOffset).toJson)
+          } ~
+          post /** reply to specific thread - 5 */ {
             entity(as[Post]) { post =>
-              (master ? CreatePost(lastId, post)).mapTo[Post]
-              complete(StatusCodes.Created)
+              complete(DAO.createPost(Some(threadId), post).toJson)
             }
           }
       } ~
       path("threads") {
-        get /** all threads with flexible limit and offset - 5 */ {
+        get /** all threads with flexible limit and offset - 6 */ {
           parameters('limit.as[Int], 'offset.as[Int]) { (limit, offset) =>
             complete(listAllThreadsPaginated(limit, offset).toJson)
           }
         } ~
-          get /** all threads with fixed limit and offset - 6 */ {
+          get /** all threads with fixed limit and offset - 7 */ {
             complete(listAllThreadsPaginated(dbLimit, dbOffset).toJson)
           } ~
-          post /** new thread - 7 */ {
+          post /** new thread - 8 */ {
             entity(as[NewThread]) { thread =>
               (master ? CreateNewThread(thread)).mapTo[NewThread]
               complete(StatusCodes.Created)
