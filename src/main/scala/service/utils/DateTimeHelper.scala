@@ -1,6 +1,6 @@
 package textboard.utils
 
-import com.github.tototoshi.slick.H2JodaSupport._
+import com.github.tototoshi.slick.PostgresJodaSupport._
 import main.scala.textboard._
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone.UTC
