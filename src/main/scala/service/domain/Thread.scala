@@ -33,7 +33,8 @@ final class Threads(tag: Tag) extends Table[Thread](tag, "THREADS") /*with Custo
 /**
  * Domain model for Thread
  */
-case class Thread(threadId: Option[Long] = None, 
+case class Thread(
+    threadId: Option[Long] = None, 
     subject: String/*,
     lastPostAdded: DateTime*/) {
   require(!subject.isEmpty, "Subject must not be empty")

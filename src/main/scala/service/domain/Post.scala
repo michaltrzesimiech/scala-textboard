@@ -22,7 +22,8 @@ final class Posts(tag: Tag) extends Table[Post](tag, "POSTS") with CustomColumnT
   def pseudonym = column[String]("PSEUDONYM")
   def email = column[String]("EMAIL")
   def content = column[String]("CONTENT")
-  def created = column[DateTime]("CREATED", O.SqlType("TIMESTAMP"))
+  def created = column[DateTime]("CREATED")
+  //  def created = column[DateTime]("CREATED", O.SqlType("TIMESTAMP"))
   //  def created = column[DateTime]("CREATED", O.SqlType("timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP"))
 
   def * : ProvenShape[Post] = (

@@ -47,7 +47,7 @@ object DAO extends TableQuery(new Threads(_)) with DatabaseService with DaoHelpe
    * TODO: this is conflicting with json reader for DateTime,
    * either investigate why it doesn't for createNewThread or fix the reader
    */
-  def createPost(threadId: Option[Long], p: Post) = {
+  def createPost(threadId: Long, p: Post) = {
     val secretId: String = UUID.randomUUID.toString
     exec(posts returning posts.map(_.secretId)
       += Post(None, p.threadId, secretId, p.pseudonym, p.email, p.content, DateTime.now))

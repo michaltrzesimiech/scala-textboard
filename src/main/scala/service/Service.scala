@@ -85,8 +85,7 @@ object Service extends TextboardJsonProtocol with SprayJsonSupport with ConfigHe
             entity(as[Post]) { post =>
               // (master ? CreatePost(lastId, post)).mapTo[Post]
               // complete(StatusCodes.Created)
-              log.info("what")
-              complete(DAO.createPost(Some(threadId), post).toJson)
+              complete(createPost(threadId, post).toJson)
             }
           }
       } ~
