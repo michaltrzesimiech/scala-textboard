@@ -13,17 +13,24 @@ import spray.json._
 import spray.json.DefaultJsonProtocol
 import textboard.domain._
 import textboard.utils._
+import org.joda.time.format.ISODateTimeFormat
+import org.joda.time.format.DateTimeFormatter
 
 /**
  * Root json protocol class for others to extend from.
  */
 trait TextboardJsonProtocol extends DefaultJsonProtocol with SprayJsonSupport with DateTimeHelper {
   implicit object DateTimeFormat extends RootJsonFormat[DateTime] {
-    def read(value: JsValue) = value match {
-      case dt: JsValue => value.convertTo[DateTime]
-      case _ => deserializationError("DateTime expected")
+
+    private val parser: DateTimeFormatter = {
+      ISODateTimeFormat.dateTimeNoMillis()
     }
-    def write(c: DateTime) = JsString(c.toString)
+
+    override def read(value: JsValue): DateTime = value match {
+      case s: JsValue => parser.parseDateTime(s.toString())
+      case _           => throw new Exception("DateTime expected")
+    }
+    override def write(dt: DateTime) = JsString(parser.print(dt))
   }
 
   implicit val threadFormat = jsonFormat2(Thread.apply)

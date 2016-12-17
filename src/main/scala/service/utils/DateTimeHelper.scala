@@ -11,7 +11,7 @@ import slick.ast.TypedType
 trait DateTimeHelper {
   implicit val now = DateTime.now
 }
-
+  
 trait CustomColumnTypes {
   implicit val jodaDateTimeType =
     MappedColumnType.base[DateTime, Timestamp](
